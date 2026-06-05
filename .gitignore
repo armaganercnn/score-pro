@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Env files (Secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Expo (Mobile App)
+.expo/
+*.jks
+*.p8
+*.key
+*.mobileprovision
+*.apk
+*.apks
+*.aab
+*.ipa
+
+# Vite Build (Admin Panel)
+dist/
+dist-ssr/
+*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Supabase Local Settings
+backend/supabase/.temp/
+backend/supabase/.branches/
+
+# IDE / System
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
