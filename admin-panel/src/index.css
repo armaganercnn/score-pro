@@ -1,6 +1,46 @@
 @import "tailwindcss";
-@config "../tailwind.config.js";
 
-body {
-  background-color: #0f172a; /* Karanlık mod arkaplan */
+@theme {
+  --color-background: #060913;
+  --color-surface: #0f1524;
+  --color-surface-hover: #161e32;
+  --color-primary: #10b981;
+  --color-primary-glow: rgba(16, 185, 129, 0.2);
+}
+
+@layer base {
+  body {
+    @apply bg-[var(--color-background)] text-slate-200 antialiased selection:bg-emerald-500/30 selection:text-emerald-200;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-[var(--color-surface)]/80 backdrop-blur-xl border border-slate-800/50 shadow-xl;
+  }
+  
+  .glass-card {
+    @apply bg-[var(--color-surface)]/50 backdrop-blur-md border border-slate-800/60 rounded-2xl hover:border-emerald-500/30 transition-all duration-300 relative overflow-hidden;
+  }
+
+  .glow-text {
+    text-shadow: 0 0 20px var(--color-primary-glow);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
 }
