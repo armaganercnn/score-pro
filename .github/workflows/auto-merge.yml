@@ -1,0 +1,33 @@
+name: Auto Merge to Main
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history is required to perform a merge
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch and Merge
+        run: |
+          # Fetch and track main branch
+          git fetch origin main
+          git checkout main
+          git pull origin main
+          
+          # Merge the pushed branch into main
+          git merge --no-ff origin/${{ github.ref_name }} -m "Auto-merge branch '${{ github.ref_name }}' into main"
+          
+          # Push the changes back to main
+          git push origin main
