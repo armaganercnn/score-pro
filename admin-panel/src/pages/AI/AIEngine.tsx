@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrainCircuit, Cpu, Settings2, Play, Sparkles, Link as LinkIcon, Database, CheckCircle2, AlertCircle } from 'lucide-react';
+import { supabase } from '../../supabase';
 
 export default function AIEngine() {
   // API Configuration State
@@ -17,6 +18,7 @@ export default function AIEngine() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [savingCoupon, setSavingCoupon] = useState(false);
 
   useEffect(() => {
     // Load saved API settings on mount
@@ -96,6 +98,77 @@ export default function AIEngine() {
       }, 2000);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSaveAICoupon = async () => {
+    if (!result) return;
+    setSavingCoupon(true);
+
+    try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const { data: coupon, error: couponError } = await supabase
+        .from('coupons')
+        .insert({
+          title: result.title,
+          description: result.description,
+          total_odds: parseFloat(result.total_odds),
+          is_premium: riskLevel === 'high' || riskLevel === 'medium',
+          status: 'active',
+          expires_at: tomorrow.toISOString()
+        })
+        .select()
+        .single();
+
+      if (couponError) throw couponError;
+
+      if (coupon && result.matches && result.matches.length > 0) {
+        for (const match of result.matches) {
+          const matchDate = new Date();
+          matchDate.setHours(matchDate.getHours() + 12);
+
+          const { data: matchData, error: matchError } = await supabase
+            .from('matches')
+            .insert({
+              home_team: match.home,
+              away_team: match.away,
+              league: 'Yapay Zeka Özel',
+              match_date: matchDate.toISOString()
+            })
+            .select()
+            .single();
+
+          if (matchError) {
+            console.error('Error saving AI match:', matchError);
+            continue;
+          }
+
+          if (matchData) {
+            const { error: itemError } = await supabase
+              .from('coupon_items')
+              .insert({
+                coupon_id: coupon.id,
+                match_id: matchData.id,
+                prediction: match.prediction,
+                odds: parseFloat(match.odds),
+                status: 'pending'
+              });
+
+            if (itemError) {
+              console.error('Error saving AI coupon item:', itemError);
+            }
+          }
+        }
+      }
+
+      alert('AI Kuponu başarıyla sisteme aktarıldı ve yayına alındı!');
+      setResult(null);
+    } catch (err: any) {
+      alert('Kupon kaydedilirken hata oluştu: ' + err.message);
+    } finally {
+      setSavingCoupon(false);
     }
   };
 
@@ -272,10 +345,14 @@ export default function AIEngine() {
                  </div>
                )}
 
-               <button className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-colors shadow-lg flex items-center justify-center">
-                 <CheckCircle2 className="w-5 h-5 mr-2" />
-                 Bu Sonucu Yeni Kupon Olarak Kaydet (Sisteme Aktar)
-               </button>
+                <button 
+                  onClick={handleSaveAICoupon}
+                  disabled={savingCoupon}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-colors shadow-lg flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle2 className="w-5 h-5 mr-2" />
+                  {savingCoupon ? 'KAYDEDİLİYOR...' : 'Bu Sonucu Yeni Kupon Olarak Kaydet (Sisteme Aktar)'}
+                </button>
              </div>
           ) : (
             <div className="text-center z-10 opacity-60 group-hover:opacity-100 transition-opacity">

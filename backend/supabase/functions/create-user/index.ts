@@ -27,7 +27,10 @@ serve(async (req) => {
     // Check Authorization
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      throw new Error('Yetkisiz işlem: Authorization başlığı eksik.')
+      return new Response(
+        JSON.stringify({ error: 'Yetkisiz işlem: Authorization başlığı eksik.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
     }
 
     const supabaseClient = createClient(
@@ -38,26 +41,58 @@ serve(async (req) => {
 
     const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser()
     if (authError || !authUser) {
-      throw new Error('Yetkisiz işlem: Geçersiz token.')
+      return new Response(
+        JSON.stringify({ error: 'Yetkisiz işlem: Geçersiz token.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
     }
 
-    // Check if the caller is an admin
-    const { data: adminData } = await supabaseClient
+    // Check if the caller is an admin (Security: maybeSingle prevents exception if user is not in admins table)
+    const { data: adminData, error: adminError } = await supabaseClient
       .from('admins')
       .select('id')
       .eq('id', authUser.id)
-      .single()
+      .maybeSingle()
 
-    if (!adminData) {
-      throw new Error('Yetkisiz işlem: Sadece adminler kullanıcı oluşturabilir.')
+    if (adminError) {
+      return new Response(
+        JSON.stringify({ error: `Sunucu hatası: Admin kontrolü yapılamadı (${adminError.message})` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
-    const { email, password, name } = await req.json()
+    if (!adminData) {
+      return new Response(
+        JSON.stringify({ error: 'Yetkisiz işlem: Sadece adminler kullanıcı oluşturabilir.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      )
+    }
 
+    const body = await req.json()
+    const { email, password, name } = body
+
+    // Validation
     if (!email || !password) {
       return new Response(
         JSON.stringify({ error: 'E-posta ve şifre zorunludur.' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // Email format check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return new Response(
+        JSON.stringify({ error: 'Geçersiz e-posta adresi formatı.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    // Password length check
+    if (password.length < 6) {
+      return new Response(
+        JSON.stringify({ error: 'Şifre en az 6 karakter olmalıdır.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
@@ -69,7 +104,12 @@ serve(async (req) => {
       user_metadata: { full_name: name }
     })
 
-    if (error) throw error
+    if (error) {
+      return new Response(
+        JSON.stringify({ error: error.message }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
 
     return new Response(
       JSON.stringify({ user }),
@@ -77,8 +117,8 @@ serve(async (req) => {
     )
   } catch (error: any) {
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      JSON.stringify({ error: error.message || 'Beklenmeyen sunucu hatası.' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })

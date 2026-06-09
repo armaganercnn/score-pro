@@ -25,7 +25,10 @@ serve(async (req) => {
     // Check Authorization
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      throw new Error('Yetkisiz işlem: Authorization başlığı eksik.')
+      return new Response(
+        JSON.stringify({ error: 'Yetkisiz işlem: Authorization başlığı eksik.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
     }
 
     const supabaseClient = createClient(
@@ -36,18 +39,31 @@ serve(async (req) => {
 
     const { data: { user: authUser }, error: authError } = await supabaseClient.auth.getUser()
     if (authError || !authUser) {
-      throw new Error('Yetkisiz işlem: Geçersiz token.')
+      return new Response(
+        JSON.stringify({ error: 'Yetkisiz işlem: Geçersiz token.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
     }
 
     // Check if the caller is an admin
-    const { data: adminData } = await supabaseClient
+    const { data: adminData, error: adminError } = await supabaseClient
       .from('admins')
       .select('id')
       .eq('id', authUser.id)
-      .single()
+      .maybeSingle()
+
+    if (adminError) {
+      return new Response(
+        JSON.stringify({ error: `Sunucu hatası: Admin kontrolü yapılamadı (${adminError.message})` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
 
     if (!adminData) {
-      throw new Error('Yetkisiz işlem: Sadece adminler bu işlemi yapabilir.')
+      return new Response(
+        JSON.stringify({ error: 'Yetkisiz işlem: Sadece adminler bu işlemi yapabilir.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      )
     }
 
     const body = await req.json()
@@ -56,13 +72,18 @@ serve(async (req) => {
     if (!userId) {
       return new Response(
         JSON.stringify({ error: 'Kullanıcı ID (userId) zorunludur.' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       )
     }
 
     if (action === 'delete') {
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId)
-      if (error) throw error
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
       return new Response(
         JSON.stringify({ success: true, message: 'Kullanıcı başarıyla silindi.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -73,14 +94,37 @@ serve(async (req) => {
       const { email, password, name } = body
       const updates: any = {}
       
-      if (email) updates.email = email
-      if (password) updates.password = password
-      if (name) updates.user_metadata = { full_name: name }
+      if (email) {
+        // Email format check
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(email)) {
+          return new Response(
+            JSON.stringify({ error: 'Geçersiz e-posta adresi formatı.' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          )
+        }
+        updates.email = email
+      }
+
+      if (password) {
+        // Password length check
+        if (password.length < 6) {
+          return new Response(
+            JSON.stringify({ error: 'Şifre en az 6 karakter olmalıdır.' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          )
+        }
+        updates.password = password
+      }
+
+      if (name) {
+        updates.user_metadata = { full_name: name }
+      }
 
       if (Object.keys(updates).length === 0) {
          return new Response(
             JSON.stringify({ error: 'Güncellenecek hiçbir bilgi girilmedi.' }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
          )
       }
 
@@ -89,7 +133,13 @@ serve(async (req) => {
         updates
       )
 
-      if (error) throw error
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        )
+      }
+
       return new Response(
         JSON.stringify({ success: true, user }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
@@ -98,13 +148,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ error: 'Geçersiz işlem (action).' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
 
   } catch (error: any) {
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      JSON.stringify({ error: error.message || 'Beklenmeyen sunucu hatası.' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })
