@@ -1,0 +1,270 @@
+{
+  "skills": [
+    {
+      "name": "api-patterns",
+      "description": "API design principles and decision-making. REST vs GraphQL vs tRPC selection, response formats, versioning, pagination.",
+      "when_to_use": "When designing REST/GraphQL/tRPC APIs, defining response formats, versioning, pagination, or API authentication. NOT for UI/frontend work.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep",
+      "path": ".agents/skills/api-patterns/SKILL.md"
+    },
+    {
+      "name": "app-builder",
+      "description": "Main application building orchestrator. Creates full-stack applications from natural language requests. Determines project type, selects tech stack, coordinates agents.",
+      "when_to_use": "When creating a new full-stack application from scratch, selecting tech stack, or scaffolding project structure. Use with /create workflow.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash, Agent",
+      "path": ".agents/skills/app-builder/SKILL.md"
+    },
+    {
+      "name": "architecture",
+      "description": "Architectural decision-making framework. Requirements analysis, trade-off evaluation, ADR documentation. Use when making architecture decisions or analyzing system design.",
+      "when_to_use": "When making architectural decisions, evaluating trade-offs, writing ADRs, or analyzing system design. NOT for direct code implementation.",
+      "allowed_tools": "Read, Glob, Grep",
+      "path": ".agents/skills/architecture/SKILL.md"
+    },
+    {
+      "name": "bash-linux",
+      "description": "Bash/Linux terminal patterns. Critical commands, piping, error handling, scripting. Use when working on macOS or Linux systems.",
+      "when_to_use": "When working on macOS or Linux systems, writing bash scripts, or using terminal commands. NOT for Windows/PowerShell environments.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash",
+      "path": ".agents/skills/bash-linux/SKILL.md"
+    },
+    {
+      "name": "batch-operations",
+      "description": "Apply operations across multiple files simultaneously. Pattern-based bulk modifications, search-and-replace across codebases, consistent changes to many files at once.",
+      "when_to_use": "When the user needs to change multiple files with the same pattern, rename across a codebase, add imports to many files, update versions, or apply consistent modifications. NOT for single-file edits.",
+      "allowed_tools": "Read, Write, Edit, Grep, Glob, Bash",
+      "path": ".agents/skills/batch-operations/SKILL.md"
+    },
+    {
+      "name": "behavioral-modes",
+      "description": "AI operational modes (brainstorm, implement, debug, review, teach, ship, orchestrate). Use to adapt behavior based on task type.",
+      "when_to_use": "When adapting AI behavior for specific task types: brainstorm, implement, debug, review, teach, ship, or orchestrate modes.",
+      "allowed_tools": "Read, Glob, Grep",
+      "path": ".agents/skills/behavioral-modes/SKILL.md"
+    },
+    {
+      "name": "brainstorming",
+      "description": "Socratic questioning protocol + user communication. MANDATORY for complex requests, new features, or unclear requirements. Includes progress reporting and error handling.",
+      "when_to_use": "When exploring options before implementation, clarifying requirements, or when the user needs creative problem-solving. Use with /brainstorm workflow.",
+      "allowed_tools": "Read, Glob, Grep",
+      "path": ".agents/skills/brainstorming/SKILL.md"
+    },
+    {
+      "name": "clean-code",
+      "description": "Pragmatic coding standards - concise, direct, no over-engineering, no unnecessary comments",
+      "when_to_use": "Always active for ALL code writing. Enforces concise, direct coding standards, testing pyramid, and performance best practices.",
+      "allowed_tools": "Read, Write, Edit",
+      "path": ".agents/skills/clean-code/SKILL.md"
+    },
+    {
+      "name": "code-review-checklist",
+      "description": "Code review guidelines covering code quality, security, and best practices.",
+      "when_to_use": "When reviewing code for quality, security, and best practices. When the user says 'review my code' or 'check this PR'.",
+      "allowed_tools": "Read, Glob, Grep",
+      "path": ".agents/skills/code-review-checklist/SKILL.md"
+    },
+    {
+      "name": "code-review-graph",
+      "description": "Token-efficient code review using Tree-sitter AST graphs and MCP. Cuts AI token usage on large codebases by computing the blast radius of changes instead of reading entire codebases. Uses a SQLite graph database for structural analysis.",
+      "when_to_use": "When reviewing code in large codebases (500+ files), when token costs are high, when making multi-file changes with cross-module dependencies, or when working with monorepos. Also for dead code detection, architecture visualization, and refactoring previews. NOT for small projects under 200 files with isolated single-file changes.",
+      "allowed_tools": "Read, Grep, Glob, Bash",
+      "path": ".agents/skills/code-review-graph/SKILL.md"
+    },
+    {
+      "name": "context-compression",
+      "description": "Manage and compress conversation context in long sessions. Detect when context is growing large, summarize completed work phases, archive old findings while preserving key decisions. Prevents context degradation.",
+      "when_to_use": "When a session has 20+ turns, when context feels repetitive, when the agent is losing track of earlier work, or when the user says 'summarize what we've done'. NOT for short sessions.",
+      "allowed_tools": "Read, Write, Grep",
+      "path": ".agents/skills/context-compression/SKILL.md"
+    },
+    {
+      "name": "database-design",
+      "description": "Database design principles and decision-making. Schema design, indexing strategy, ORM selection, serverless databases.",
+      "when_to_use": "When designing database schemas, choosing ORMs, planning migrations, or optimizing queries. When working with Prisma, Drizzle, or SQL files.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep",
+      "path": ".agents/skills/database-design/SKILL.md"
+    },
+    {
+      "name": "deployment-procedures",
+      "description": "Production deployment principles and decision-making. Safe deployment workflows, rollback strategies, and verification. Teaches thinking, not scripts.",
+      "when_to_use": "When deploying to production, planning rollback strategies, or setting up CI/CD pipelines. Use with /deploy workflow.",
+      "allowed_tools": "Read, Glob, Grep, Bash",
+      "path": ".agents/skills/deployment-procedures/SKILL.md"
+    },
+    {
+      "name": "documentation-templates",
+      "description": "Documentation templates and structure guidelines. README, API docs, code comments, and AI-friendly documentation.",
+      "when_to_use": "When writing README files, API documentation, code comments, or generating AI-friendly documentation.",
+      "allowed_tools": "Read, Glob, Grep",
+      "path": ".agents/skills/documentation-templates/SKILL.md"
+    },
+    {
+      "name": "frontend-design",
+      "description": "Design thinking and decision-making for web UI. Use when designing components, layouts, color schemes, typography, or creating aesthetic interfaces. Teaches principles, not fixed values.",
+      "when_to_use": "When designing web UI components, choosing color schemes, typography, layouts, or creating aesthetic interfaces. NOT for mobile apps.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash",
+      "path": ".agents/skills/frontend-design/SKILL.md"
+    },
+    {
+      "name": "game-development",
+      "description": "Game development orchestrator. Routes to platform-specific skills based on project needs.",
+      "when_to_use": "When building games with Unity, Godot, Unreal, Phaser, or any game engine. Routes to platform-specific sub-skills.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash",
+      "path": ".agents/skills/game-development/SKILL.md"
+    },
+    {
+      "name": "intelligent-routing",
+      "description": "Automatic agent selection and intelligent task routing. Analyzes user requests and automatically selects the best specialist agent(s) without requiring explicit user mentions.",
+      "when_to_use": "Always active. Automatically selects the best specialist agent for each user request without explicit user mentions.",
+      "allowed_tools": "",
+      "path": ".agents/skills/intelligent-routing/SKILL.md"
+    },
+    {
+      "name": "lint-and-validate",
+      "description": "Automatic quality control, linting, and static analysis procedures. Use after every code modification to ensure syntax correctness and project standards. Triggers onKeywords: lint, format, check, validate, types, static analysis.",
+      "when_to_use": "When running linters, type checkers, or code formatters. After any code change that needs quality validation.",
+      "allowed_tools": "Read, Glob, Grep, Bash",
+      "path": ".agents/skills/lint-and-validate/SKILL.md"
+    },
+    {
+      "name": "mcp-builder",
+      "description": "MCP (Model Context Protocol) server building principles. Tool design, resource patterns, best practices.",
+      "when_to_use": "When building MCP (Model Context Protocol) servers, designing MCP tools, or implementing MCP resource patterns.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep",
+      "path": ".agents/skills/mcp-builder/SKILL.md"
+    },
+    {
+      "name": "memory-system",
+      "description": "Persistent cross-session memory management. Enables agents to remember user preferences, project conventions, and past decisions across different sessions using a structured MEMORY.md index and topic files.",
+      "when_to_use": "When the user says 'remember this', 'save this for later', 'don't forget', or when starting a new session and needing to recall past context. Also when /remember workflow is invoked.",
+      "allowed_tools": "Read, Write, Grep, Glob",
+      "path": ".agents/skills/memory-system/SKILL.md"
+    },
+    {
+      "name": "mobile-design",
+      "description": "Mobile-first design thinking and decision-making for iOS and Android apps. Touch interaction, performance patterns, platform conventions. Teaches principles, not fixed values. Use when building React Native, Flutter, or native mobile apps.",
+      "when_to_use": "When designing mobile app interfaces for iOS/Android, React Native, or Flutter. Touch interaction and platform conventions. NOT for web apps.",
+      "allowed_tools": "Read, Glob, Grep, Bash",
+      "path": ".agents/skills/mobile-design/SKILL.md"
+    },
+    {
+      "name": "nextjs-react-expert",
+      "description": "React and Next.js performance optimization from Vercel Engineering. Use when building React components, optimizing performance, eliminating waterfalls, reducing bundle size, reviewing code for performance issues, or implementing server/client-side optimizations.",
+      "when_to_use": "When building React components, optimizing Next.js performance, eliminating waterfalls, or reducing bundle size. For React/Next.js web projects.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash",
+      "path": ".agents/skills/nextjs-react-expert/SKILL.md"
+    },
+    {
+      "name": "nodejs-best-practices",
+      "description": "Node.js development principles and decision-making. Framework selection, async patterns, security, and architecture. Teaches thinking, not copying.",
+      "when_to_use": "When building Node.js backends, selecting frameworks (Express/Fastify/NestJS), or implementing async patterns.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep",
+      "path": ".agents/skills/nodejs-best-practices/SKILL.md"
+    },
+    {
+      "name": "parallel-agents",
+      "description": "Multi-agent orchestration patterns. Use when multiple independent tasks can run with different domain expertise or when comprehensive analysis requires multiple perspectives.",
+      "when_to_use": "When a task requires 2+ specialist agents, comprehensive multi-domain analysis, or coordinated parallel execution. Use with /orchestrate or /coordinate workflows. NOT for single-domain tasks where one agent suffices.",
+      "allowed_tools": "Read, Glob, Grep",
+      "path": ".agents/skills/parallel-agents/SKILL.md"
+    },
+    {
+      "name": "performance-profiling",
+      "description": "Performance profiling principles. Measurement, analysis, and optimization techniques.",
+      "when_to_use": "When diagnosing performance issues, running Lighthouse audits, analyzing bundle size, or optimizing Core Web Vitals.",
+      "allowed_tools": "Read, Glob, Grep, Bash",
+      "path": ".agents/skills/performance-profiling/SKILL.md"
+    },
+    {
+      "name": "plan-writing",
+      "description": "Structured task planning with clear breakdowns, dependencies, and verification criteria. Use when implementing features, refactoring, or any multi-step work.",
+      "when_to_use": "When creating structured task plans, breaking down features into tasks, or defining verification criteria. Use with /plan workflow.",
+      "allowed_tools": "Read, Glob, Grep",
+      "path": ".agents/skills/plan-writing/SKILL.md"
+    },
+    {
+      "name": "python-patterns",
+      "description": "Python development principles and decision-making. Framework selection, async patterns, type hints, project structure. Teaches thinking, not copying.",
+      "when_to_use": "When writing Python code, selecting Python frameworks, implementing type hints, or structuring Python projects.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep",
+      "path": ".agents/skills/python-patterns/SKILL.md"
+    },
+    {
+      "name": "server-management",
+      "description": "Server management principles and decision-making. Process management, monitoring strategy, and scaling decisions. Teaches thinking, not commands.",
+      "when_to_use": "When managing servers, configuring process managers (PM2), setting up monitoring, or planning scaling strategies.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash",
+      "path": ".agents/skills/server-management/SKILL.md"
+    },
+    {
+      "name": "simplify-code",
+      "description": "Reduce complexity of over-engineered code. Identify unnecessary abstractions, remove dead code, flatten deep nesting, and simplify logic while preserving behavior.",
+      "when_to_use": "When code is over-engineered, overly abstract, deeply nested, or more complex than needed. When user asks to 'simplify', 'clean up', 'reduce complexity', or 'make this simpler'. NOT for adding new features.",
+      "allowed_tools": "Read, Write, Edit, Grep, Glob",
+      "path": ".agents/skills/simplify-code/SKILL.md"
+    },
+    {
+      "name": "skillify",
+      "description": "Auto-create new skills from repetitive workflows. When you notice yourself doing the same multi-step process repeatedly, extract it into a reusable SKILL.md that any agent can use.",
+      "when_to_use": "When the user says 'make this a skill', 'create a skill for this', 'I keep doing this same thing', or when a repetitive multi-step pattern is observed. NOT for one-off tasks.",
+      "allowed_tools": "Read, Write, Glob, Grep",
+      "path": ".agents/skills/skillify/SKILL.md"
+    },
+    {
+      "name": "systematic-debugging",
+      "description": "4-phase systematic debugging methodology with root cause analysis and evidence-based verification. Use when debugging complex issues.",
+      "when_to_use": "When debugging complex issues, performing root cause analysis, or using evidence-based problem solving. Use with /debug workflow.",
+      "allowed_tools": "Read, Glob, Grep",
+      "path": ".agents/skills/systematic-debugging/SKILL.md"
+    },
+    {
+      "name": "tailwind-patterns",
+      "description": "Tailwind CSS v4 principles. CSS-first configuration, container queries, modern patterns, design token architecture.",
+      "when_to_use": "When using Tailwind CSS v4, implementing design tokens, container queries, or modern CSS patterns with Tailwind.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep",
+      "path": ".agents/skills/tailwind-patterns/SKILL.md"
+    },
+    {
+      "name": "tdd-workflow",
+      "description": "Test-Driven Development workflow principles. RED-GREEN-REFACTOR cycle.",
+      "when_to_use": "When practicing Test-Driven Development, following RED-GREEN-REFACTOR cycle, or writing tests before implementation.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash",
+      "path": ".agents/skills/tdd-workflow/SKILL.md"
+    },
+    {
+      "name": "testing-patterns",
+      "description": "Testing patterns and principles. Unit, integration, mocking strategies.",
+      "when_to_use": "When writing unit tests, integration tests, choosing testing frameworks, or implementing mocking strategies.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash",
+      "path": ".agents/skills/testing-patterns/SKILL.md"
+    },
+    {
+      "name": "verify-changes",
+      "description": "Prove code works by running it, not just checking it exists. Verification through execution rather than inspection. Use after writing or modifying code to ensure it actually functions correctly.",
+      "when_to_use": "After writing code, completing a feature, or fixing a bug. When the user says 'does this work?', 'test this', 'verify', or when /verify workflow is invoked. NOT for writing new code — for proving existing code works.",
+      "allowed_tools": "Read, Bash, Grep, Glob",
+      "path": ".agents/skills/verify-changes/SKILL.md"
+    },
+    {
+      "name": "vulnerability-scanner",
+      "description": "Advanced vulnerability analysis principles. OWASP 2025, Supply Chain Security, attack surface mapping, risk prioritization.",
+      "when_to_use": "When scanning for security vulnerabilities, checking OWASP 2025 compliance, or analyzing supply chain security.",
+      "allowed_tools": "Read, Glob, Grep, Bash",
+      "path": ".agents/skills/vulnerability-scanner/SKILL.md"
+    },
+    {
+      "name": "web-design-guidelines",
+      "description": "Review UI code for Web Interface Guidelines compliance. Use when asked to \"review my UI\", \"check accessibility\", \"audit design\", \"review UX\", or \"check my site against best practices\".",
+      "when_to_use": "When auditing web UI for best practices, checking accessibility, or reviewing design against Web Interface Guidelines.",
+      "allowed_tools": "Read, Grep, Glob, WebFetch",
+      "path": ".agents/skills/web-design-guidelines/SKILL.md"
+    },
+    {
+      "name": "webapp-testing",
+      "description": "Web application testing principles. E2E, Playwright, deep audit strategies.",
+      "when_to_use": "When writing E2E tests with Playwright, performing deep web app audits, or testing user flows. Use with /test workflow.",
+      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash",
+      "path": ".agents/skills/webapp-testing/SKILL.md"
+    }
+  ]
+}

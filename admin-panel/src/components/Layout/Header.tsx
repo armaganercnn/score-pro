@@ -48,25 +48,24 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="h-20 glass-panel flex items-center justify-between px-8 z-20 flex-shrink-0 sticky top-0">
-      <div className="flex items-center space-x-4">
-        <div className="w-2 h-8 bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-        <h2 className="text-2xl font-bold text-white tracking-wide glow-text">
+    <header className="h-16 glass-panel flex items-center justify-between px-8 z-20 flex-shrink-0 sticky top-0 border-b border-white/5">
+      <div className="flex items-center space-x-3">
+        <h2 className="text-lg font-bold text-white tracking-tight">
           {getPageTitle()}
         </h2>
       </div>
       
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-4">
         {/* Action Buttons */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2">
           <button 
             onClick={() => navigate('/marketing')}
-            className="p-2.5 bg-slate-800/50 hover:bg-slate-800 text-slate-300 rounded-xl transition-colors border border-slate-700/50 relative group"
+            className="p-2 bg-white/5 hover:bg-white/10 text-neutral-300 rounded-lg transition-all border border-white/5 active:scale-95 relative group"
             title="Destek Talepleri"
           >
-            <Bell className="w-5 h-5 group-hover:text-emerald-400 transition-colors" />
+            <Bell className="w-4.5 h-4.5 group-hover:text-[#30D158] transition-colors" />
             {openTicketsCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)] text-[9px] font-bold text-slate-900 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#30D158] rounded-full text-[9px] font-bold text-black flex items-center justify-center shadow-[0_2px_5px_rgba(48,209,88,0.4)]">
                 {openTicketsCount}
               </span>
             )}
@@ -74,16 +73,18 @@ export default function Header() {
           
           <button 
             onClick={() => window.location.reload()}
-            className="p-2.5 bg-slate-800/50 hover:bg-slate-800 text-slate-300 rounded-xl transition-colors border border-slate-700/50 group" 
+            className="p-2 bg-white/5 hover:bg-white/10 text-neutral-300 rounded-lg transition-all border border-white/5 group active:scale-95" 
             title="Verileri Yenile"
           >
-            <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500 group-hover:text-emerald-400" />
+            <RefreshCw className="w-4.5 h-4.5 group-hover:rotate-180 transition-transform duration-700 group-hover:text-[#30D158]" />
           </button>
         </div>
+        
+        <div className="h-px w-4 bg-white/10 rotate-90"></div>
 
         {/* Profile */}
         <div 
-          className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer hover:scale-105 transition-transform border border-emerald-400/30"
+          className="h-8 w-8 rounded-full bg-[#30D158] flex items-center justify-center font-bold text-black shadow-[0_2px_8px_rgba(48,209,88,0.2)] cursor-pointer hover:scale-105 active:scale-95 transition-transform text-xs"
           title={user?.email || 'Admin'}
         >
           {user?.email ? user.email.substring(0, 2).toUpperCase() : 'AD'}

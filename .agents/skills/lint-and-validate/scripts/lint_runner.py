@@ -50,7 +50,10 @@ def detect_project_type(project_path: Path) -> dict:
             
             # Check for TypeScript
             if "typescript" in deps or (project_path / "tsconfig.json").exists():
-                result["linters"].append({"name": "tsc", "cmd": ["npx", "tsc", "--noEmit"]})
+                if "vue-tsc" in deps:
+                    result["linters"].append({"name": "vue-tsc", "cmd": ["npx", "vue-tsc", "--noEmit"]})
+                else:
+                    result["linters"].append({"name": "tsc", "cmd": ["npx", "tsc", "--noEmit"]})
                 
         except:
             pass
@@ -115,6 +118,10 @@ def run_linter(linter: dict, cwd: Path) -> dict:
 
 def main():
     project_path = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
+    
+    # Auto-detect sub-project if root path doesn't have package.json but frontend does
+    if not (project_path / "package.json").exists() and (project_path / "frontend" / "package.json").exists():
+        project_path = project_path / "frontend"
     
     print(f"\n{'='*60}")
     print(f"[LINT RUNNER] Unified Linting")

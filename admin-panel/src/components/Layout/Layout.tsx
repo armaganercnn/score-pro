@@ -5,10 +5,10 @@ import Header from './Header';
 
 export default function Layout() {
   return (
-    <div className="flex h-screen bg-[var(--color-background)] overflow-hidden">
+    <div className="flex h-screen bg-[var(--color-background)] overflow-hidden relative">
       {/* Background ambient light effects */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-900/20 blur-[120px] rounded-full pointer-events-none"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-900/10 blur-[120px] rounded-full pointer-events-none"></div>
+      <div className="absolute top-[-20%] left-[-20%] w-[70%] h-[70%] bg-[#30D158]/4 blur-[180px] rounded-full pointer-events-none"></div>
+      <div className="absolute bottom-[-20%] right-[-20%] w-[70%] h-[70%] bg-[#0A84FF]/4 blur-[180px] rounded-full pointer-events-none"></div>
 
       <Sidebar />
       <div className="flex-1 flex flex-col relative z-10 overflow-hidden">

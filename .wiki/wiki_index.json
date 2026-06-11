@@ -1,0 +1,89 @@
+{
+  "files": {
+    "business-rules/BR_001_minimum_payment_limit.md": {
+      "id": "BR_001",
+      "title": "Minimum Ödeme Limiti Kontrolü",
+      "status": "active",
+      "created_at": "2026-06-09",
+      "updated_at": "2026-06-09",
+      "links": [
+        "data-models/DB_transactions",
+        "services/SVC_payment_gateway",
+        "sales-channels/CHN_web_portal",
+        "sales-channels/CHN_mobile_app"
+      ],
+      "code_refs": [
+        {
+          "name": "PaymentController.java",
+          "uri": "file:///Users/armaganercan/.gemini/antigravity/scratch/backend/src/controllers/PaymentController.java#L45-L52"
+        }
+      ]
+    },
+    "sales-channels/CHN_mobile_app.md": {
+      "id": "CHN_mobile_app",
+      "title": "Mobil Uygulama Kanalı",
+      "status": "active",
+      "created_at": "",
+      "updated_at": "",
+      "links": [
+        "services/SVC_payment_gateway",
+        "services/SVC_loyalty_manager",
+        "business-rules/BR_001_minimum_payment_limit"
+      ],
+      "code_refs": []
+    },
+    "data-models/DB_transactions.md": {
+      "id": "DB_transactions",
+      "title": "Ödeme İşlemleri Tablosu",
+      "status": "active",
+      "created_at": "",
+      "updated_at": "",
+      "links": [
+        "business-rules/BR_001_minimum_payment_limit",
+        "sales-channels/CHN_mobile_app",
+        "sales-channels/CHN_web_portal",
+        "services/SVC_payment_gateway"
+      ],
+      "code_refs": []
+    },
+    "services/SVC_payment_gateway.md": {
+      "id": "SVC_payment_gateway",
+      "title": "Ödeme Geçidi Servisi",
+      "status": "active",
+      "created_at": "",
+      "updated_at": "",
+      "links": [
+        "data-models/DB_transactions",
+        "services/SVC_loyalty_manager",
+        "business-rules/BR_001_minimum_payment_limit",
+        "business-rules/BR_002_loyalty_point_usage"
+      ],
+      "code_refs": []
+    }
+  },
+  "graph": {
+    "BR_001": [
+      "DB_transactions",
+      "SVC_payment_gateway",
+      "CHN_web_portal",
+      "CHN_mobile_app"
+    ],
+    "CHN_mobile_app": [
+      "SVC_payment_gateway",
+      "SVC_loyalty_manager",
+      "BR_001_minimum_payment_limit"
+    ],
+    "DB_transactions": [
+      "BR_001_minimum_payment_limit",
+      "CHN_mobile_app",
+      "CHN_web_portal",
+      "SVC_payment_gateway"
+    ],
+    "SVC_payment_gateway": [
+      "DB_transactions",
+      "SVC_loyalty_manager",
+      "BR_001_minimum_payment_limit",
+      "BR_002_loyalty_point_usage"
+    ]
+  }
+}

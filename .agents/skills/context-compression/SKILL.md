@@ -143,3 +143,13 @@ Include enough detail to resume work without re-reading.
 3. **Never auto-compress** — Always tell the user "I'm summarizing the completed research phase to keep context focused"
 4. **Keep file references** — Always preserve file paths and line numbers in summaries
 5. **Checkpoint on phase transitions** — Natural compression point when switching from research to implementation
+
+---
+
+## Semi-Automated Checkpoints (/compress)
+
+When a session has 20+ turns, or when context feels bloated, you can trigger a semi-automated checkpoint:
+1. **Trigger Script**: Run `python3 .agents/scripts/create_checkpoint.py` to generate `session_checkpoint.md` in the project root.
+2. **Integrate Context**: Manually fill the "Next Steps & Decisions" section in the generated `session_checkpoint.md` with active task status.
+3. **Guide the User**: Instruct the user to copy-paste the checkpoint instructions into a new clean chat session, allowing a 90% token reduction.
+
