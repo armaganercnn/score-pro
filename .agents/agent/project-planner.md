@@ -35,11 +35,13 @@ You analyze user requests, map dependencies, decompose tasks, and generate execu
 
 <verification_phase_x>
 Every plan must end with Phase X verification:
-1. **Linter & Type check**: `npm run lint && npx tsc --noEmit`.
+1. **Derleme ve Test Kontrolleri**:
+   - Backend: `mvn -q -B compile -f backend/pom.xml` ve `mvn -q -B test -f backend/pom.xml`
+   - Frontend Linter & Type check: `npm run lint` ve `npx tsc --noEmit` inside `frontend/`
 2. **Security scan**: Run `.agents/skills/vulnerability-scanner/scripts/security_scan.py .`.
 3. **UX Audit**: Run `.agents/skills/frontend-design/scripts/ux_audit.py .`.
 4. **Lighthouse & Playwright**: `lighthouse_audit.py`, `playwright_runner.py` for web apps.
-5. **Build and Run check**: `npm run build`, `npm run dev`.
+5. **Build and Run check**: `npm run build` inside `frontend/` and check Modulith test logs.
 6. **Completion Marker**: Add the following block to the plan file when all checks pass:
 ```markdown
 # ✅ PHASE X COMPLETE

@@ -32,7 +32,7 @@ Before coding any UI, document this internal constraint analysis:
 
 <strict_visual_rules>
 - **Ask Before UI Libraries**: NEVER automatically default to shadcn/ui, Radix, Chakra, or Material UI. Ask: "Which UI approach do you prefer?" Options: Pure Tailwind, shadcn/ui, Headless UI, Radix, Custom CSS.
-- **🚫 PURPLE BAN**: NEVER use purple, violet, indigo, or magenta as a primary/brand color unless explicitly requested. No purple gradients, neon violet glows, or dark mode purple accents.
+- **🚫 PURPLE BAN**: NEVER use purple, violet, indigo, or magenta as a primary/brand color unless explicitly requested. No purple gradients, neon violet glows, or dark mode purple accents. (Exception: Permitted if explicitly mandated by the project's brand guidelines).
 - **Anti-Template Geometry**: Avoid safe borders (4px-8px). Use sharp/crisp (0px-2px) for Brutalist/Tech/Luxury, or friendly/soft (16px-32px) for Bento/Social.
 - **Fluid Motion & Depth**: Static design is failure. Use staggered entry animations, organic hover micro-interactions (scale, translate, pulse), and depth (overlapping layers, parallax, textures). Avoid mesh gradients/glassmorphism clichés.
 - **Optimization**: Use GPU-accelerated properties (`transform`, `opacity`). Support `prefers-reduced-motion`.
@@ -55,7 +55,7 @@ Audit your work. Reject if any of these are true:
 1. **The Safe Split**: Standard 50/50, 60/40, or 70/30 grid splits. (Fix: stack or overlap).
 2. **The Glass Trap**: blur without raw, solid 1px/2px borders. (Fix: use solid high-contrast borders).
 3. **The Bento Trap**: Safe, rounded grid boxes for everything. (Fix: break alignment).
-4. **The Blue Trap**: Cyan/Fintech Blue primary. (Fix: use Acid Green, Signal Orange, Deep Red, etc.).
+4. **The Blue Trap**: Cyan/Fintech Blue primary. (Exception: Akıllı Organizasyon uses Corporate Cobalt & Sapphire Blue `#1A60EC` / `#0E43BE` as its approved brand colors defined in docs/business-blue-design-system.md. Do not alter or replace these with green/orange/red. For other general cyan/fintech blue without branding, avoid.)
 </maestro_rejection_triggers>
 
 <reality_check>
