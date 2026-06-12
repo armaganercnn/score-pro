@@ -29,25 +29,11 @@
       "path": ".agents/skills/batch-operations/SKILL.md"
     },
     {
-      "name": "code-review-checklist",
-      "description": "Code review guidelines covering code quality, security, and best practices.",
-      "when_to_use": "When reviewing code for quality, security, and best practices. When the user says 'review my code' or 'check this PR'.",
-      "allowed_tools": "Read, Glob, Grep",
-      "path": ".agents/skills/code-review-checklist/SKILL.md"
-    },
-    {
       "name": "deployment-procedures",
       "description": "Production deployment principles and decision-making. Safe deployment workflows, rollback strategies, and verification. Teaches thinking, not scripts.",
       "when_to_use": "When deploying to production, planning rollback strategies, or setting up CI/CD pipelines. Use with /deploy workflow.",
       "allowed_tools": "Read, Glob, Grep, Bash",
       "path": ".agents/skills/deployment-procedures/SKILL.md"
-    },
-    {
-      "name": "documentation-templates",
-      "description": "Documentation templates and structure guidelines. README, API docs, code comments, and AI-friendly documentation.",
-      "when_to_use": "When writing README files, API documentation, code comments, or generating AI-friendly documentation.",
-      "allowed_tools": "Read, Glob, Grep",
-      "path": ".agents/skills/documentation-templates/SKILL.md"
     },
     {
       "name": "intelligent-routing",
@@ -83,13 +69,6 @@
       "when_to_use": "When code is over-engineered, overly abstract, deeply nested, or more complex than needed. When user asks to 'simplify', 'clean up', 'reduce complexity', or 'make this simpler'. NOT for adding new features.",
       "allowed_tools": "Read, Write, Edit, Grep, Glob",
       "path": ".agents/skills/simplify-code/SKILL.md"
-    },
-    {
-      "name": "tdd-workflow",
-      "description": "Test-Driven Development workflow principles. RED-GREEN-REFACTOR cycle.",
-      "when_to_use": "When practicing Test-Driven Development, following RED-GREEN-REFACTOR cycle, or writing tests before implementation.",
-      "allowed_tools": "Read, Write, Edit, Glob, Grep, Bash",
-      "path": ".agents/skills/tdd-workflow/SKILL.md"
     },
     {
       "name": "testing-patterns",
