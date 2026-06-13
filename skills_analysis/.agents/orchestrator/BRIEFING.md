@@ -1,4 +1,4 @@
-# BRIEFING — 2026-06-14T02:35:40+03:00
+# BRIEFING — 2026-06-14T02:37:05+03:00
 
 ## Mission
 5 özel skill/agent yapısının (Architectural Guardrail, Session Handoff, Clean Code & Simplifier, TDD Enforcer, Security Auditor) analiz edilip skills_analysis_report.md raporunun oluşturulması.
@@ -27,9 +27,10 @@
   1. PROJECT.md planının hazırlanması [done]
   2. Araştırma ve Analiz (Explorer) [done]
   3. Şablonların ve Taslakların Hazırlanması (Worker) [done]
-  4. Rapor Birleştirme ve Doğrulama (Reviewer) [in-progress]
+  4. Rapor Birleştirme ve Doğrulama (Reviewer) [done]
+  5. Adli Denetim (Auditor) [in-progress]
 - **Current phase**: 4
-- **Current focus**: Rapor Birleştirme ve Doğrulama (Reviewer)
+- **Current focus**: Adli Denetim (Auditor)
 
 ## 🔒 Key Constraints
 - Türkçe dil kullanımı, teknik terimlerin İngilizce bırakılması.
@@ -41,7 +42,7 @@
 - Updated: not yet
 
 ## Key Decisions Made
-- Analiz ve şablonların üretilmesi için alt subagent'ların (teamwork_preview_explorer, teamwork_preview_worker, teamwork_preview_reviewer) koordine edilmesi.
+- Analiz ve şablonların üretilmesi için alt subagent'ların (teamwork_preview_explorer, teamwork_preview_worker, teamwork_preview_reviewer, teamwork_preview_auditor) koordine edilmesi.
 
 ## Team Roster
 | Agent | Type | Work Item | Status | Conv ID |
@@ -49,12 +50,13 @@
 | explorer_1 | teamwork_preview_explorer | Araştırma ve Analiz (M1) | completed | 61b5479d-45ae-4252-a8f5-248d112a8251 |
 | worker_1 | teamwork_preview_worker | Şablonlar ve Entegrasyon Taslakları (M2) | completed | c187b2da-f8ab-43d7-8d24-64a0e054093e |
 | worker_2 | teamwork_preview_worker | Rapor Birleştirme (M3) | completed | 4a963f6b-941e-4d57-979b-7ed3cf888267 |
-| reviewer_1 | teamwork_preview_reviewer | Rapor İnceleme ve Doğrulama (M4) | in-progress | 4e34b913-beb3-46c5-80de-aa9479a9e662 |
+| reviewer_1 | teamwork_preview_reviewer | Rapor İnceleme ve Doğrulama (M4) | completed | 4e34b913-beb3-46c5-80de-aa9479a9e662 |
+| auditor_1 | teamwork_preview_auditor | Adli Denetim (M4) | in-progress | f50d3349-a6f2-4f75-a662-3418f2cfe09c |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 4 / 16
-- Pending subagents: 4e34b913-beb3-46c5-80de-aa9479a9e662
+- Spawn count: 5 / 16
+- Pending subagents: f50d3349-a6f2-4f75-a662-3418f2cfe09c
 - Predecessor: none
 - Successor: not yet spawned
 
