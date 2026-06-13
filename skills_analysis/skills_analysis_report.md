@@ -5,7 +5,7 @@ Bu rapor, yazılım geliştirme süreçlerinde kullanılabilecek 5 farklı özel
 ## 1. Architectural Guardrail
 
 ### 1.1. Tanım ve Çalışma Şekli
-Architectural Guardrail, agent'ın yazılım geliştirme sürecinde belirlenen sistem mimarisine, dizin yapısına, tasarım desenlerine ve kodlama standartlarına sadık kalmasını sağlayan kontrol mekanizmasıdır. 
+Architectural Guardrail, agent'ın yazılım geliştirme sürecinde belirlenen sistem mimarisine, dizin yapısına, tasarım desenlerine ve kodlama standartlarına sadık kalmasını sağlayan kontrol mekanizmasıdır.
 
 **Çalışma Şekli (Workflow):**
 1. Kod yazım aşamasında veya commit öncesinde, agent'ın yapacağı değişiklikler tanımlanmış mimari kurallar listesi ile karşılaştırılır.
@@ -14,13 +14,13 @@ Architectural Guardrail, agent'ın yazılım geliştirme sürecinde belirlenen s
 
 ### 1.2. Fayda ve Maliyet/Risk Analizi
 - **Sisteme Katacağı Faydalar**:
-* **Kod Tabanı Tutarlılığı (Consistency):** Kişisel projelerde zamanla oluşabilecek spagetti kod yapısını ve teknik borçlanmayı (technical debt) önler.
-* **Hataları Erken Yakalama:** Yanlış dizinlere dosya yazma veya hatalı bağımlılık (dependency) oluşturma gibi yapısal hatalar daha kod derlenmeden çözülür.
-* **Kalite Artışı (Quality Increase):** Kodun standartlara uygun ve düzenli kalmasını sağlar.
+  - **Kod Tabanı Tutarlılığı (Consistency):** Kişisel projelerde zamanla oluşabilecek spagetti kod yapısını ve teknik borçlanmayı (technical debt) önler.
+  - **Hataları Erken Yakalama:** Yanlış dizinlere dosya yazma veya hatalı bağımlılık (dependency) oluşturma gibi yapısal hatalar daha kod derlenmeden çözülür.
+  - **Kalite Artışı (Quality Increase):** Kodun standartlara uygun ve düzenli kalmasını sağlar.
 - **Maliyetler ve Riskler**:
-* **API Maliyeti (API Cost):** Kodun mimari kurallara uygunluğunu kontrol etmek için yapılan her LLM sorgusu ek token tüketimi ve maliyet yaratır.
-* **Gecikme Süresi (Latency):** Kodun her aşamada denetlenmesi, geliştirme döngüsünün (feedback loop) uzamasına neden olur.
-* **Geliştirici Blokajı ve Bağlam Kayması (Context Drift):** Aşırı katı mimari kurallar, hızlı prototipleme (prototyping) yaparken agent'ın veya kullanıcının odaklanmasını zorlaştırabilir, küçük bir değişiklik için tüm yapıyı değiştirmek zorunda bırakabilir.
+  - **API Maliyeti (API Cost):** Kodun mimari kurallara uygunluğunu kontrol etmek için yapılan her LLM sorgusu ek token tüketimi ve maliyet yaratır.
+  - **Gecikme Süresi (Latency):** Kodun her aşamada denetlenmesi, geliştirme döngüsünün (feedback loop) uzamasına neden olur.
+  - **Geliştirici Blokajı ve Bağlam Kayması (Context Drift):** Aşırı katı mimari kurallar, hızlı prototipleme (prototyping) yaparken agent'ın veya kullanıcının odaklanmasını zorlaştırabilir, küçük bir değişiklik için tüm yapıyı değiştirmek zorunda bırakabilir.
 - **Bireysel Kullanım Değerlendirmesi ("Gerçekten İhtiyacımız Var mı?")**:
 **Bireysel kullanım için orta derecede gereklidir.** Eğer çok küçük ölçekli, tek kullanımlık (disposable) scriptler yazılıyorsa Architectural Guardrail aşırı mühendislik (over-engineering) olacaktır. Ancak kişisel proje büyüdükçe veya birden fazla agent aynı projede iş birliği yaptıkça, projenin çığırından çıkmasını önlemek için hafifletilmiş (lightweight) bir mimari denetim mekanizması oldukça faydalıdır.
 
@@ -198,12 +198,12 @@ Session Handoff, bir agent'ın görevini tamamladığında, bağlam limiti (cont
 
 ### 2.2. Fayda ve Maliyet/Risk Analizi
 - **Sisteme Katacağı Faydalar**:
-* **Büyük Oranda Token Tasarrufu (Token Saving):** Tüm konuşma geçmişinin (context) her seferinde yeniden yüklenmesini engeller. Sadece özet raporun okunması yeterlidir.
-* **Bağlam Taşmasını (Context Overflow) Önleme:** LLM'in bağlam penceresini gereksiz geçmişle doldurmayarak daha doğru kararlar almasını sağlar.
-* **Süreklilik:** Agent'ın yarıda kalan işleri unutmadan, sonraki seansa pürüzsüz aktarmasını sağlar.
+  - **Büyük Oranda Token Tasarrufu (Token Saving):** Tüm konuşma geçmişinin (context) her seferinde yeniden yüklenmesini engeller. Sadece özet raporun okunması yeterlidir.
+  - **Bağlam Taşmasını (Context Overflow) Önleme:** LLM'in bağlam penceresini gereksiz geçmişle doldurmayarak daha doğru kararlar almasını sağlar.
+  - **Süreklilik:** Agent'ın yarıda kalan işleri unutmadan, sonraki seansa pürüzsüz aktarmasını sağlar.
 - **Maliyetler ve Riskler**:
-* **Yazma Gecikmesi (Latency):** Her adımın sonunda standart bir rapor hazırlamak ek bir işlem süresi gerektirir.
-* **Bilgi Kaybı / Eksik Aktarım:** Handoff raporunu hazırlayan agent önemli bir detayı atlar veya yanlış aktarırsa, sonraki agent yanlış bilgi üzerinden devam eder ve hata zinciri (cascading failure) oluşur.
+  - **Yazma Gecikmesi (Latency):** Her adımın sonunda standart bir rapor hazırlamak ek bir işlem süresi gerektirir.
+  - **Bilgi Kaybı / Eksik Aktarım:** Handoff raporunu hazırlayan agent önemli bir detayı atlar veya yanlış aktarırsa, sonraki agent yanlış bilgi üzerinden devam eder ve hata zinciri (cascading failure) oluşur.
 - **Bireysel Kullanım Değerlendirmesi ("Gerçekten İhtiyacımız Var mı?")**:
 **Bireysel kullanım için kesinlikle gereklidir.** Özellikle uzun süren, birden fazla aşamadan oluşan kişisel projelerde LLM token limitleri ve maliyetleri hızlıca yükselebilir. Session Handoff hem maliyeti düşürür hem de agent'ın konudan sapmasını (context drift) engeller. Birden fazla agent'ın çalıştığı senaryolarda ise kaçınılmaz bir zorunluluktur.
 
@@ -217,7 +217,7 @@ Lütfen bu geliştirme oturumunun sonunda aşağıdaki 5 bileşenden oluşan bir
 
 1. **Observation (Gözlem)**: Doğrudan gözlemlediğin somut verileri belirt (değişen dosya yolları, satır numaraları, birebir hata mesajları, çalıştırılan komutlar ve sonuçları).
 2. **Logic Chain (Mantık Zinciri)**: Gözlemlerden ulaştığın çıkarımlara giden adım adım mantık yürütmeni açıkla. Her adım bir gözleme dayanmalıdır.
-3. **Caveats (Kısıtlar/Uygarılar)**: İncelemediğin alanları, yaptığın varsayımları ve değerlendirdiğin alternatif çözümleri belirt. Kısıt yoksa "No caveats" yaz.
+3. **Caveats (Kısıtlar/Uyarılar)**: İncelemediğin alanları, yaptığın varsayımları ve değerlendirdiğin alternatif çözümleri belirt. Kısıt yoksa "No caveats" yaz.
 4. **Conclusion (Sonuç)**: Mantık zinciri tarafından desteklenen nihai durum ve yapılan değişikliklerin özeti.
 5. **Verification Method (Doğrulama Yöntemi)**: Yapılan değişikliklerin nasıl test edileceğini açıklayan net adımlar ve komutlar (örn: `pytest`, `cargo test`, veya manuel test adımları).
 ```
@@ -374,12 +374,12 @@ Clean Code & Simplifier, agent tarafından yazılan kodun karmaşıklığını a
 
 ### 3.2. Fayda ve Maliyet/Risk Analizi
 - **Sisteme Katacağı Faydalar**:
-* **Okunabilirlik ve Bakım Kolaylığı:** Kodun geliştirici tarafından kolayca anlaşılmasını ve gelecekte kolayca değiştirilebilmesini sağlar.
-* **Gelecekteki Token Tasarrufu:** Daha az kod satırı, agent'ın sonraki adımlarda kodu okurken daha az token tüketmesi anlamına gelir.
-* **Hata (Bug) Azaltma:** Sade kodda mantık hataları daha kolay fark edilir ve gizli bug'ların barınma ihtimali düşer.
+  - **Okunabilirlik ve Bakım Kolaylığı:** Kodun geliştirici tarafından kolayca anlaşılmasını ve gelecekte kolayca değiştirilebilmesini sağlar.
+  - **Gelecekteki Token Tasarrufu:** Daha az kod satırı, agent'ın sonraki adımlarda kodu okurken daha az token tüketmesi anlamına gelir.
+  - **Hata (Bug) Azaltma:** Sade kodda mantık hataları daha kolay fark edilir ve gizli bug'ların barınma ihtimali düşer.
 - **Maliyetler ve Riskler**:
-* **Davranış Bozulması (Regression):** Kod sadeleştirilirken mevcut işlevlerin istemeden bozulması riski vardır. Güçlü test mekanizmaları yoksa risk büyüktür.
-* **Ek API Maliyeti ve Gecikme:** Refactoring adımı ek LLM analizi ve kod yazımı gerektirdiğinden zaman ve bütçe maliyeti oluşturur.
+  - **Davranış Bozulması (Regression):** Kod sadeleştirilirken mevcut işlevlerin istemeden bozulması riski vardır. Güçlü test mekanizmaları yoksa risk büyüktür.
+  - **Ek API Maliyeti ve Gecikme:** Refactoring adımı ek LLM analizi ve kod yazımı gerektirdiğinden zaman ve bütçe maliyeti oluşturur.
 - **Bireysel Kullanım Değerlendirmesi ("Gerçekten İhtiyacımız Var mı?")**:
 **Bireysel kullanım için yüksek derecede faydalıdır.** Yapay zeka agent'ları sıklıkla gereksiz yere uzun, tekrarlı veya aşırı genel (AI slop) kodlar üretebilir. Bireysel geliştiricinin bu kodları elle temizlemesi zaman alıcıdır. Clean Code & Simplifier yeteneği, kod tabanını temiz tutarak geliştiricinin zihinsel yükünü hafifletir.
 
@@ -552,12 +552,12 @@ TDD Enforcer, yazılım geliştirme sürecinde Test-Driven Development (Test Gü
 
 ### 4.2. Fayda ve Maliyet/Risk Analizi
 - **Sisteme Katacağı Faydalar**:
-* **Maksimum Güvenilirlik:** Kodun her zaman test edilmiş ve doğrulanmış olmasını garanti eder. Regression riskini sıfıra yaklaştırır.
-* **Daha İyi Tasarım:** Test edilebilir kod yazmaya zorladığı için yazılım mimarisini daha modüler ve loose-coupled hale getirir.
+  - **Maksimum Güvenilirlik:** Kodun her zaman test edilmiş ve doğrulanmış olmasını garanti eder. Regression riskini sıfıra yaklaştırır.
+  - **Daha İyi Tasarım:** Test edilebilir kod yazmaya zorladığı için yazılım mimarisini daha modüler ve loose-coupled hale getirir.
 - **Maliyetler ve Riskler**:
-* **Aşırı Yüksek Gecikme Süresi (Latency):** Sürekli test yazmak, çalıştırmak ve beklemek geliştirme sürecini ciddi oranda yavaşlatır.
-* **Yüksek API Maliyeti:** Her test-kod-test döngüsü (Red-Green-Refactor) LLM ile çok sayıda etkileşim gerektirir.
-* **Esneklik Kaybı:** Kişisel projelerin doğasında olan hızlı deneme-yanılma ve keşifsel (exploratory) kodlama süreçlerini engelleyerek geliştirme motivasyonunu kırabilir.
+  - **Aşırı Yüksek Gecikme Süresi (Latency):** Sürekli test yazmak, çalıştırmak ve beklemek geliştirme sürecini ciddi oranda yavaşlatır.
+  - **Yüksek API Maliyeti:** Her test-kod-test döngüsü (Red-Green-Refactor) LLM ile çok sayıda etkileşim gerektirir.
+  - **Esneklik Kaybı:** Kişisel projelerin doğasında olan hızlı deneme-yanılma ve keşifsel (exploratory) kodlama süreçlerini engelleyerek geliştirme motivasyonunu kırabilir.
 - **Bireysel Kullanım Değerlendirmesi ("Gerçekten İhtiyacımız Var mı?")**:
 **Bireysel kullanım için genellikle gereksizdir ve verimsizdir.** Kişisel projelerde hız ve esneklik ön plandadır. TDD Enforcer gibi katı bir yapının zorunlu kılınması, geliştirme hızını aşırı yavaşlatır ve API maliyetlerini katlar. Test yazmak önemlidir ancak bunu katı kurallarla agent seviyesinde zorlamak yerine, kritik fonksiyonlar için isteğe bağlı (on-demand) test yazım yetenekleri tercih edilmelidir.
 
@@ -743,12 +743,12 @@ Security Auditor, yazılan koddaki güvenlik açıklarını, zafiyetleri ve hass
 
 ### 5.2. Fayda ve Maliyet/Risk Analizi
 - **Sisteme Katacağı Faydalar**:
-* **Güvenlik Güvencesi:** Kritik zafiyetlerin canlıya (production) çıkmasını engeller.
-* **Hassas Veri Koruması:** API anahtarlarının ve şifrelerin istemeden Git repolarına yüklenmesini (leak) önler.
-* **Bilinçli Kodlama:** Bireysel geliştiricinin gözünden kaçabilecek güvenlik açıklarını yakalayarak projenin güvenliğini artırır.
+  - **Güvenlik Güvencesi:** Kritik zafiyetlerin canlıya (production) çıkmasını engeller.
+  - **Hassas Veri Koruması:** API anahtarlarının ve şifrelerin istemeden Git repolarına yüklenmesini (leak) önler.
+  - **Bilinçli Kodlama:** Bireysel geliştiricinin gözünden kaçabilecek güvenlik açıklarını yakalayarak projenin güvenliğini artırır.
 - **Maliyetler ve Riskler**:
-* **False Positives (Hatalı Alarmlar):** Güvenlik araçları bazen güvenli kodları da zafiyet olarak işaretleyebilir. Bu durum agent'ın gereksiz yere vakit kaybetmesine yol açar.
-* **Gecikme ve Maliyet:** Güvenlik analizleri ek tarama süreleri ve analiz API maliyetleri oluşturur.
+  - **False Positives (Hatalı Alarmlar):** Güvenlik araçları bazen güvenli kodları da zafiyet olarak işaretleyebilir. Bu durum agent'ın gereksiz yere vakit kaybetmesine yol açar.
+  - **Gecikme ve Maliyet:** Güvenlik analizleri ek tarama süreleri ve analiz API maliyetleri oluşturur.
 - **Bireysel Kullanım Değerlendirmesi ("Gerçekten İhtiyacımız Var mı?")**:
 **Bireysel kullanım için duruma göre gereklidir.** Eğer geliştirilen kişisel proje sadece lokalde çalışan basit bir araç ise kritik değildir. Ancak, internete açılacak (publicly hosted), kullanıcı verisi barındıran veya üçüncü parti API'lar (AWS, OpenAI vb.) ile entegre çalışan projelerde **kesinlikle gereklidir**. Özellikle API anahtarı sızıntılarını engellemek ve temel zafiyetleri önlemek için hafif bir Security Auditor (örn. gitleaks entegrasyonu ve temel regex taramaları) mutlaka bulunmalıdır.
 
@@ -764,7 +764,7 @@ Sen bir güvenlik denetçisisin (Security Auditor). Yazılan kodu ve yapılandı
    - Kodun hiçbir yerinde API anahtarları, veri tabanı şifreleri, JWT secret'ları, AWS key'leri gibi hassas veriler doğrudan (hardcoded) yazılmamalıdır. Bunlar mutlaka ortam değişkenlerinden (`environment variables`) okunmalıdır.
 2. **Güvenli API ve Fonksiyon Kullanımı (Secure Functions)**:
    - Python'daki `eval()`, `exec()` gibi dinamik kod çalıştıran fonksiyonlar ve `subprocess` modülündeki `shell=True` parametresi güvenlik açığı (RCE - Remote Code Execution) yaratabileceğinden asla kullanılmamalıdır.
-   - Güvensiz deserialization yapan `pickle.loads()` veya güvenli olmayan `yaml.load()` ( SafeLoader kullanılmayan durumlar) yerine güvenli alternatifleri (`json.loads`, `yaml.safe_load`) kullanılmalıdır.
+   - Güvensiz deserialization yapan `pickle.loads()` veya güvenli olmayan `yaml.load()` (SafeLoader kullanılmayan durumlar) yerine güvenli alternatifleri (`json.loads`, `yaml.safe_load`) kullanılmalıdır.
 3. **Güvenli Bağımlılıklar (Secure Dependencies)**:
    - `requirements.txt` dosyasındaki kütüphanelerin bilinen güvenlik açığı barındıran eski sürümleri yerine güncel ve güvenli sürümleri tercih edilmelidir.
 
