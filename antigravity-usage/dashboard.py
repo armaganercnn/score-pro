@@ -1390,6 +1390,11 @@ class DashboardHTTPRequestHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
             self.end_headers()
+            try:
+                from scanner import scan
+                scan()
+            except Exception as e:
+                print(f"Auto-scan failed: {e}")
             data = get_dashboard_data()
             self.wfile.write(json.dumps(data).encode("utf-8"))
         elif url == "/api/scan":
