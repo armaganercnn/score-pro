@@ -768,7 +768,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         if (m.includes('flash')) {
             if (m.includes('high')) return 'gemini-3.5-flash-high';
             if (m.includes('low')) return 'gemini-3.5-flash-low';
-            return 'gemini-3.5-flash';
+            return 'gemini-3.5-flash-medium';
         }
         if (m.includes('pro')) {
             if (m.includes('high')) return 'gemini-3.1-pro-high';
@@ -882,7 +882,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             const maxDate = new Date(maxDateStr + 'T00:00:00');
             const days = parseInt(selectedRange);
             cutoffDate = new Date(maxDate);
-            cutoffDate.setDate(maxDate.getDate() - days);
+            cutoffDate.setDate(maxDate.getDate() - (days + 1));
         }
 
         // Update subtexts
@@ -993,28 +993,28 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     {
                         label: 'Giriş (Input)',
                         data: dailyInputData,
-                        backgroundColor: '#4f7ef7',
+                        backgroundColor: '#3b82f6',
                         borderWidth: 0,
                         categoryPercentage: 0.8
                     },
                     {
                         label: 'Çıkış (Output)',
                         data: dailyOutputData,
-                        backgroundColor: '#a27dfa',
+                        backgroundColor: '#8b5cf6',
                         borderWidth: 0,
                         categoryPercentage: 0.8
                     },
                     {
                         label: 'Önbellek Okuma',
                         data: dailyCacheReadData,
-                        backgroundColor: '#36b37e',
+                        backgroundColor: '#10b981',
                         borderWidth: 0,
                         categoryPercentage: 0.8
                     },
                     {
                         label: 'Önbellek Yazma',
                         data: dailyCacheCreationData,
-                        backgroundColor: '#ffab00',
+                        backgroundColor: '#06b6d4',
                         borderWidth: 0,
                         categoryPercentage: 0.8
                     }
@@ -1075,10 +1075,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 datasets: [{
                     data: pieData,
                     backgroundColor: [
-                        '#ff7a59', '#4f7ef7', '#36b37e', '#ffab00', '#a27dfa', '#e74c3c', '#9b59b6', '#34495e'
+                        '#38bdf8', '#3b82f6', '#8b5cf6', '#10b981', '#06b6d4', '#ec4899', '#6366f1', '#475569'
                     ],
                     borderWidth: 2,
-                    borderColor: '#131520'
+                    borderColor: '#151b2c'
                 }]
             },
             options: {
@@ -1142,13 +1142,13 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     {
                         label: 'Giriş (Input)',
                         data: projectInputData,
-                        backgroundColor: '#4f7ef7',
+                        backgroundColor: '#3b82f6',
                         borderWidth: 0
                     },
                     {
                         label: 'Çıkış (Output)',
                         data: projectOutputData,
-                        backgroundColor: '#a27dfa',
+                        backgroundColor: '#8b5cf6',
                         borderWidth: 0
                     }
                 ]
