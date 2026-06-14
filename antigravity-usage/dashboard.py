@@ -1382,17 +1382,20 @@ class DashboardHTTPRequestHandler(BaseHTTPRequestHandler):
         if url == "/" or url == "/index.html":
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
             self.end_headers()
             self.wfile.write(HTML_PAGE.encode("utf-8"))
         elif url == "/api/data":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
             self.end_headers()
             data = get_dashboard_data()
             self.wfile.write(json.dumps(data).encode("utf-8"))
         elif url == "/api/scan":
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
             self.end_headers()
             try:
                 from scanner import scan
