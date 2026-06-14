@@ -222,22 +222,22 @@ HTML_PAGE = r"""<!DOCTYPE html>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #090a0f;
-            --card-bg: #131520;
-            --card-border: #1f2232;
+            --bg: #0b0f19;
+            --card-bg: #151b2c;
+            --card-border: #1f293d;
             --text-main: #9aa0b8;
             --text-bright: #ffffff;
             --text-muted: #5d627a;
-            --orange-primary: #ff7a59;
-            --orange-active: #d97706;
-            --orange-bg-muted: rgba(255, 122, 89, 0.05);
-            --orange-border: rgba(255, 122, 89, 0.3);
+            --blue-primary: #38bdf8;
+            --blue-active: #3b82f6;
+            --blue-bg-muted: rgba(56, 189, 248, 0.05);
+            --blue-border: rgba(56, 189, 248, 0.3);
             
             /* Chart colors */
-            --color-input: #4f7ef7;
-            --color-output: #a27dfa;
-            --color-cache-read: #36b37e;
-            --color-cache-creation: #ffab00;
+            --color-input: #3b82f6;
+            --color-output: #8b5cf6;
+            --color-cache-read: #10b981;
+            --color-cache-creation: #06b6d4;
         }
 
         * {
@@ -250,14 +250,14 @@ HTML_PAGE = r"""<!DOCTYPE html>
             background-color: var(--bg);
             color: var(--text-main);
             font-family: 'Outfit', -apple-system, sans-serif;
-            padding-bottom: 50px;
+            padding-bottom: 30px;
             letter-spacing: 0.2px;
         }
 
         header {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 30px 30px 15px 30px;
+            padding: 20px 30px 10px 30px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -266,7 +266,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         header h1 {
             font-size: 22px;
             font-weight: 600;
-            color: var(--orange-primary);
+            color: var(--blue-primary);
             letter-spacing: 0.5px;
         }
 
@@ -280,8 +280,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
         .btn-rescan {
             background-color: transparent;
-            color: var(--orange-primary);
-            border: 1px solid var(--orange-border);
+            color: var(--blue-primary);
+            border: 1px solid var(--blue-border);
             padding: 6px 16px;
             border-radius: 6px;
             font-size: 13px;
@@ -291,10 +291,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
         }
 
         .btn-rescan:hover {
-            background-color: var(--orange-primary);
+            background-color: var(--blue-primary);
             color: var(--bg);
-            border-color: var(--orange-primary);
-            box-shadow: 0 0 12px rgba(255, 122, 89, 0.3);
+            border-color: var(--blue-primary);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
         }
 
         .btn-rescan:disabled {
@@ -304,7 +304,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
         #filter-bar {
             max-width: 1400px;
-            margin: 0 auto 20px auto;
+            margin: 0 auto 15px auto;
             padding: 0 30px;
             display: flex;
             flex-direction: column;
@@ -352,17 +352,17 @@ HTML_PAGE = r"""<!DOCTYPE html>
             color: var(--text-bright);
         }
 
-        /* Model active state: outline orange, orange text */
+        /* Model active state: outline blue, blue text */
         .chip.model-chip.active {
-            border-color: var(--orange-primary);
-            color: var(--orange-primary);
-            background: var(--orange-bg-muted);
+            border-color: var(--blue-primary);
+            color: var(--blue-primary);
+            background: var(--blue-bg-muted);
         }
 
         /* Special buttons like All/None and Range active states */
         .chip.btn-all.active {
-            background: var(--orange-primary);
-            border-color: var(--orange-primary);
+            background: var(--blue-primary);
+            border-color: var(--blue-primary);
             color: var(--bg);
             font-weight: 600;
         }
@@ -375,8 +375,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
         }
 
         .chip.range-chip.active {
-            background: #d97706; /* Solid dark orange/brown active */
-            border-color: #d97706;
+            background: var(--blue-active);
+            border-color: var(--blue-active);
             color: var(--bg);
             font-weight: 600;
         }
@@ -384,34 +384,27 @@ HTML_PAGE = r"""<!DOCTYPE html>
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 0 30px 30px 30px;
+            padding: 0 30px 20px 30px;
         }
 
-        .stats-grid-top {
+        .stats-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 16px;
             margin-bottom: 20px;
         }
-
-        .stats-grid-bottom {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
-            margin-bottom: 35px;
-        }
-
-        @media (max-width: 1024px) {
-            .stats-grid-top {
-                grid-template-columns: repeat(3, 1fr);
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
             }
-            .stats-grid-bottom {
+        }
+        @media (max-width: 768px) {
+            .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
-
-        @media (max-width: 768px) {
-            .stats-grid-top, .stats-grid-bottom {
+        @media (max-width: 480px) {
+            .stats-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -420,7 +413,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 8px;
-            padding: 22px;
+            padding: 12px 16px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             transition: transform 0.2s ease, border-color 0.2s ease;
         }
@@ -457,7 +450,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             display: grid;
             grid-template-columns: 1.7fr 1.3fr;
             gap: 20px;
-            margin-bottom: 35px;
+            margin-bottom: 20px;
         }
 
         @media (max-width: 992px) {
@@ -470,7 +463,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 8px;
-            padding: 24px;
+            padding: 16px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             display: flex;
             flex-direction: column;
@@ -486,19 +479,19 @@ HTML_PAGE = r"""<!DOCTYPE html>
             font-weight: 700;
             text-transform: uppercase;
             color: var(--text-main);
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             letter-spacing: 0.8px;
         }
 
         .chart-container-large {
             position: relative;
-            height: 380px;
+            height: 290px;
             width: 100%;
         }
 
         .chart-container-medium {
             position: relative;
-            height: 320px;
+            height: 240px;
             width: 100%;
         }
 
@@ -506,7 +499,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 8px;
-            padding: 24px;
+            padding: 16px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             overflow-x: auto;
         }
@@ -530,14 +523,14 @@ HTML_PAGE = r"""<!DOCTYPE html>
             font-size: 11px;
             text-transform: uppercase;
             color: var(--text-muted);
-            padding: 14px 16px;
+            padding: 8px 12px;
             border-bottom: 1px solid var(--card-border);
             font-weight: 700;
             letter-spacing: 0.8px;
         }
 
         td {
-            padding: 14px 16px;
+            padding: 8px 12px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.02);
             font-size: 13px;
             color: var(--text-main);
@@ -644,8 +637,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 </div>
 
 <div class="container">
-    <!-- Stats Row 1 (5 Cards) -->
-    <div class="stats-grid-top">
+    <div class="stats-grid">
         <div class="stat-card">
             <div class="label">Oturumlar</div>
             <div class="value" id="stat-sessions">0</div>
@@ -671,10 +663,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
             <div class="value mono" id="stat-cache-read">0</div>
             <div class="subtext">istek önbelleğinden</div>
         </div>
-    </div>
-
-    <!-- Stats Row 2 (2 Cards, negative space after) -->
-    <div class="stats-grid-bottom">
         <div class="stat-card">
             <div class="label">Önbellek Yazma</div>
             <div class="value mono" id="stat-cache-creation">0</div>

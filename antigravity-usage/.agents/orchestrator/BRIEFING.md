@@ -20,13 +20,13 @@ Orchestrate the updates to the Antigravity Usage Dashboard to resolve bugs, fix 
 - **Work items**:
   1. Decompose project requirements into milestones [done]
   2. Implement E2E Test Suite [in-progress]
-  3. R1: Correct Model Settings Parsing & Normalization [in-progress]
-  4. R2: Correct Caching & Cost Calculation [in-progress]
+  3. R1: Correct Model Settings Parsing & Normalization [in-progress] (Backend completed)
+  4. R2: Correct Caching & Cost Calculation [done]
   5. R3: Date Range Adjustments [in-progress]
   6. R4: Premium Compact UI & Blue Theme [in-progress]
   7. Verification & Hardening [pending]
 - **Current phase**: 2
-- **Current focus**: Dispatching E2E Testing and Implementation tracks
+- **Current focus**: Monitoring implementation of Frontend/Date Range and E2E Test Suite
 
 ## 🔒 Key Constraints
 - Never write or modify source code files directly.

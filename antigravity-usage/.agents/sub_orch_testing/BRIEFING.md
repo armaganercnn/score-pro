@@ -1,4 +1,4 @@
-# BRIEFING — 2026-06-14T08:44:00+03:00
+# BRIEFING — 2026-06-14T08:52:00+03:00
 
 ## Mission
 Antigravity Usage Dashboard projesi için kapsamlı, opaque-box E2E test paketi tasarlamak, yazmak ve doğrulamak.
@@ -31,7 +31,7 @@ Antigravity Usage Dashboard projesi için kapsamlı, opaque-box E2E test paketi 
   4. Run/verify the test suite (PLANNED)
   5. Publish TEST_READY.md (PLANNED)
 - **Current phase**: 2
-- **Current focus**: Implementing environment overrides and CLI tests (Milestone 2)
+- **Current focus**: Implementing dashboard API and sunucu tests (Milestone 3)
 
 ## 🔒 Key Constraints
 - Opaque-box E2E testing (run cli.py or dashboard.py only, no internal imports/dependencies).
@@ -41,11 +41,11 @@ Antigravity Usage Dashboard projesi için kapsamlı, opaque-box E2E test paketi 
 
 ## Current Parent
 - Conversation ID: 6a848f67-44db-4b30-88fa-72d40abf1611
-- Updated: 2026-06-14T08:44:00+03:00
+- Updated: 2026-06-14T08:52:00+03:00
 
 ## Key Decisions Made
 - Use environment variables `ANTIGRAVITY_BRAIN_DIR` and `ANTIGRAVITY_DB_PATH` to isolate test database and transcripts.
-- Implement env overrides in the codebase to make it testable in isolation.
+- Use `BROWSER=true` (or `BROWSER=echo`) to disable browser opening during background dashboard tests.
 
 ## Team Roster
 | Agent | Type | Work Item | Status | Conv ID |
@@ -54,12 +54,13 @@ Antigravity Usage Dashboard projesi için kapsamlı, opaque-box E2E test paketi 
 | Explorer 2 | teamwork_preview_explorer | Outline E2E test harness architecture | completed | 4bf26f1f-da42-4e0f-bc79-1162ff837287 |
 | Explorer 3 | teamwork_preview_explorer | Draft 4-tier feature and case mapping | completed | 7f7e9ec2-a2f9-4192-8e99-a5093c4482e5 |
 | Worker 1 | teamwork_preview_worker | Write TEST_INFRA.md | completed | e1d6df4f-1ff7-41df-af9d-5dc8144184ac |
-| Worker 2 | teamwork_preview_worker | Implement env overrides and CLI tests (M2) | pending | 8e0fc0f6-ef79-4cb3-bf84-0ed7937b708a |
+| Worker 2 | teamwork_preview_worker | Implement env overrides and CLI tests (M2) | completed | 8e0fc0f6-ef79-4cb3-bf84-0ed7937b708a |
+| Worker 3 | teamwork_preview_worker | Implement Dashboard sunucu ve API testleri (M3) | pending | 08fc0659-dbd0-430b-9bfb-7ba88f4d23fc |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 5 / 16
-- Pending subagents: 8e0fc0f6-ef79-4cb3-bf84-0ed7937b708a
+- Spawn count: 6 / 16
+- Pending subagents: 08fc0659-dbd0-430b-9bfb-7ba88f4d23fc
 - Predecessor: none
 - Successor: not yet spawned
 

@@ -8,8 +8,8 @@
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|---|---|---|---|
-| 1 | Backend Logic (R1 & R2) | Correct model parsing in scanner.py, caching token calculation in scanner.py, and cost formula update in cli.py and dashboard.py. | None | PLANNED |
-| 2 | Frontend & Date Range (R3 & R4) | Date filter adjustments (+1 day) and premium compact blue theme styling in dashboard.py. | M1 | PLANNED |
+| 1 | Backend Logic (R1 & R2) | Correct model parsing in scanner.py, caching token calculation in scanner.py, and cost formula update in cli.py and dashboard.py. | None | DONE |
+| 2 | Frontend & Date Range (R3 & R4) | Date filter adjustments (+1 day) and premium compact blue theme styling in dashboard.py. | M1 | IN_PROGRESS |
 | 3 | E2E Integration (Phase 1 & 2) | Pass 100% of E2E tests (Tier 1-4) and perform Tier 5 Adversarial Coverage Hardening once TEST_READY.md is published. | M1, M2 | PLANNED |
 
 ## Interface Contracts

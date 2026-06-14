@@ -25,11 +25,11 @@ Implement all backend and frontend changes requested in ORIGINAL_REQUEST.md (R1,
    - Escalate: report to parent (last resort)
 4. **Succession**: Self-succeed when spawn count >= 16.
 - **Work items**:
-  - Milestone 1: Backend Logic [in-progress]
-  - Milestone 2: Frontend & Date Range [pending]
+  - Milestone 1: Backend Logic [done]
+  - Milestone 2: Frontend & Date Range [in-progress]
   - Milestone 3: E2E Integration [pending]
 - **Current phase**: 2 (Direct Iteration)
-- **Current focus**: Milestone 1 (Backend Logic)
+- **Current focus**: Milestone 2 (Frontend & Date Range)
 
 ## 🔒 Key Constraints
 - NEVER write, modify, or create source code files directly.
@@ -51,12 +51,16 @@ Implement all backend and frontend changes requested in ORIGINAL_REQUEST.md (R1,
 | explorer_backend_r1_r2_1 | teamwork_preview_explorer | Explore R1 & R2 | completed | d3c7a0e1-d504-4774-bf2b-183e1291cca8 |
 | explorer_backend_r1_r2_2 | teamwork_preview_explorer | Explore R1 & R2 | completed | 6b75558c-83c4-4e03-8c05-ac7533bf7269 |
 | explorer_backend_r1_r2_3 | teamwork_preview_explorer | Explore R1 & R2 | completed | 057c54a5-00f8-40d9-b943-6d443312ff2f |
-| worker_backend_r1_r2 | teamwork_preview_worker | Implement R1 & R2 | pending | a3a033e5-6df1-4a92-b284-fdbdaae31e02 |
+| worker_backend_r1_r2 | teamwork_preview_worker | Implement R1 & R2 | completed | a3a033e5-6df1-4a92-b284-fdbdaae31e02 |
+| explorer_frontend_r3_r4_1 | teamwork_preview_explorer | Explore R3 & R4 | completed | 98edbca0-f01b-4712-9d67-352b81589dc4 |
+| explorer_frontend_r3_r4_2 | teamwork_preview_explorer | Explore R3 & R4 | completed | 936d9c65-030c-48fb-af25-b2d00d7972ae |
+| explorer_frontend_r3_r4_3 | teamwork_preview_explorer | Explore R3 & R4 | completed | 4a7be8b0-9645-4c4c-9801-d2ed007b3cb8 |
+| worker_frontend_r3_r4 | teamwork_preview_worker | Implement R3 & R4 | pending | bf847fec-6e09-4f70-af88-e3694af61e6e |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 4 / 16
-- Pending subagents: a3a033e5-6df1-4a92-b284-fdbdaae31e02
+- Spawn count: 8 / 16
+- Pending subagents: bf847fec-6e09-4f70-af88-e3694af61e6e
 - Predecessor: none
 - Successor: not yet spawned
 
