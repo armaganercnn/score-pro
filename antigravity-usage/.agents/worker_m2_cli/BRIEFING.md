@@ -30,13 +30,13 @@ Milestone 2 - Test Harness & CLI Verification: Implement environment overrides, 
   - cli.py: DB_PATH respects ANTIGRAVITY_DB_PATH env var
   - scanner.py: BRAIN_DIR and DB_PATH respect ANTIGRAVITY_BRAIN_DIR and ANTIGRAVITY_DB_PATH env vars
   - dashboard.py: DB_PATH respects ANTIGRAVITY_DB_PATH env var
-- **Build status**: TBD
+- **Build status**: Pass
 - **Pending issues**: None
 
 ## Quality Status
-- **Build/test result**: TBD
-- **Lint status**: TBD
-- **Tests added/modified**: None
+- **Build/test result**: Pass (5 tests passed)
+- **Lint status**: 0 violations (no linters present, py_compile passes)
+- **Tests added/modified**: tests/test_cli.py added containing 5 E2E test cases
 
 ## Loaded Skills
 - None
