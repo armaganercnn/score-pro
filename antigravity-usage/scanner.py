@@ -28,7 +28,8 @@ def init_db(conn):
             total_cache_read        INTEGER DEFAULT 0,
             total_cache_creation    INTEGER DEFAULT 0,
             model           TEXT,
-            turn_count      INTEGER DEFAULT 0
+            turn_count      INTEGER DEFAULT 0,
+            session_title   TEXT
         );
 
         CREATE TABLE IF NOT EXISTS turns (
@@ -57,6 +58,11 @@ def init_db(conn):
         CREATE UNIQUE INDEX IF NOT EXISTS idx_turns_message_id
         ON turns(message_id) WHERE message_id IS NOT NULL AND message_id != '';
     """)
+    # Add session_title column if upgrading from older schema
+    try:
+        conn.execute("SELECT session_title FROM sessions LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE sessions ADD COLUMN session_title TEXT")
     conn.commit()
 
 def project_name_from_cwd(cwd):
@@ -97,12 +103,37 @@ def extract_paths_from_args(args):
             return str(p)
     return None
 
+def extract_session_title(content):
+    if not content:
+        return "New Conversation"
+    # Extract <USER_REQUEST>...</USER_REQUEST>
+    match = re.search(r"<USER_REQUEST>(.*?)</USER_REQUEST>", content, re.DOTALL)
+    if match:
+        text = match.group(1).strip()
+    else:
+        text = content.strip()
+    
+    # Take the first line
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    if not lines:
+        return "New Conversation"
+    title = lines[0]
+    
+    # Clean markdown headers, bold, formatting
+    title = re.sub(r"^#+\s+", "", title)
+    title = re.sub(r"[*`_]", "", title)
+    
+    if len(title) > 60:
+        title = title[:57] + "..."
+    return title
+
 def scan_transcript_file(filepath, session_id):
     """Parses an Antigravity transcript.jsonl file."""
     turns = []
     session_meta = {
         "session_id": session_id,
         "project_name": "antigravity-scratch",
+        "session_title": "New Conversation",
         "first_timestamp": None,
         "last_timestamp": None,
         "git_branch": "main",
@@ -115,6 +146,7 @@ def scan_transcript_file(filepath, session_id):
     current_model = DEFAULT_MODEL
     current_cwd = str(Path.home())
     last_user_input = ""
+    first_user_input_content = None
     first_ts = None
     last_ts = None
 
@@ -164,6 +196,8 @@ def scan_transcript_file(filepath, session_id):
 
         if rtype == "USER_INPUT" or source == "USER_EXPLICIT":
             last_user_input += "\n" + content
+            if not first_user_input_content and content.strip():
+                first_user_input_content = content
         elif rtype == "PLANNER_RESPONSE" or source == "MODEL":
             # This is a model response. Create a turn.
             thinking = record.get("thinking", "")
@@ -201,6 +235,7 @@ def scan_transcript_file(filepath, session_id):
 
     session_meta["first_timestamp"] = first_ts or datetime.utcnow().isoformat() + "Z"
     session_meta["last_timestamp"] = last_ts or datetime.utcnow().isoformat() + "Z"
+    session_meta["session_title"] = extract_session_title(first_user_input_content)
 
     return session_meta, turns
 
@@ -252,14 +287,14 @@ def scan(projects_dir=None):
         conn.execute("""
             INSERT OR REPLACE INTO sessions (
                 session_id, project_name, first_timestamp, last_timestamp, git_branch,
-                total_input_tokens, total_output_tokens, model, turn_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                total_input_tokens, total_output_tokens, model, turn_count, session_title
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             session_meta["session_id"], session_meta["project_name"],
             session_meta["first_timestamp"], session_meta["last_timestamp"],
             session_meta["git_branch"], session_meta["total_input_tokens"],
             session_meta["total_output_tokens"], session_meta["model"],
-            session_meta["turn_count"]
+            session_meta["turn_count"], session_meta["session_title"]
         ))
 
         # 2. Save Turns

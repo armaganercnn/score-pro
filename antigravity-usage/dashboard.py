@@ -46,6 +46,28 @@ def calc_cost(model, inp, out):
     p = get_pricing(model)
     return (inp * p["input"] / 1_000_000) + (out * p["output"] / 1_000_000)
 
+def normalize_model_name(model):
+    if not model:
+        return "Gemini 3.5 Flash (Medium)"
+    m = model.lower()
+    if "opus" in m:
+        return "Claude Opus 4.6 (Thinking)"
+    if "sonnet" in m:
+        return "Claude Sonnet 4.6 (Thinking)"
+    if "pro" in m:
+        if "high" in m:
+            return "Gemini 3.1 Pro (High)"
+        return "Gemini 3.1 Pro (Low)"
+    if "oss" in m or "gpt" in m:
+        return "GPT-OSS 120B (Medium)"
+    if "flash" in m:
+        if "high" in m:
+            return "Gemini 3.5 Flash (High)"
+        if "low" in m:
+            return "Gemini 3.5 Flash (Low)"
+        return "Gemini 3.5 Flash (Medium)"
+    return "Gemini 3.5 Flash (Medium)"
+
 def get_dashboard_data():
     if not DB_PATH.exists():
         return {"error": "Database not found. Please run a scan first."}
@@ -53,11 +75,17 @@ def get_dashboard_data():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
 
-    # 1. Fetch all unique models
-    model_rows = conn.execute("SELECT DISTINCT model FROM turns WHERE model IS NOT NULL").fetchall()
-    all_models = [r["model"] for r in model_rows]
-    if not all_models:
-        all_models = list(PRICING.keys())
+    # 1. Fetch all unique models - hardcode standard list to display all
+    all_models = [
+        "Gemini 3.5 Flash (Medium)",
+        "Gemini 3.5 Flash (High)",
+        "Gemini 3.5 Flash (Low)",
+        "Gemini 3.1 Pro (Low)",
+        "Gemini 3.1 Pro (High)",
+        "Claude Sonnet 4.6 (Thinking)",
+        "Claude Opus 4.6 (Thinking)",
+        "GPT-OSS 120B (Medium)"
+    ]
 
     # 2. Daily usage stats
     daily_rows = conn.execute("""
@@ -74,10 +102,11 @@ def get_dashboard_data():
 
     daily_data = []
     for r in daily_rows:
-        cost = calc_cost(r["model_name"], r["inp"], r["out"])
+        model_name = normalize_model_name(r["model_name"])
+        cost = calc_cost(model_name, r["inp"], r["out"])
         daily_data.append({
             "day": r["day"],
-            "model": r["model_name"],
+            "model": model_name,
             "input": r["inp"],
             "output": r["out"],
             "turns": r["turns"],
@@ -98,10 +127,11 @@ def get_dashboard_data():
 
     project_data = []
     for r in project_rows:
-        cost = calc_cost(r["model_name"], r["inp"], r["out"])
+        model_name = normalize_model_name(r["model_name"])
+        cost = calc_cost(model_name, r["inp"], r["out"])
         project_data.append({
             "project": r["proj"],
-            "model": r["model_name"],
+            "model": model_name,
             "input": r["inp"],
             "output": r["out"],
             "sessions": r["session_count"],
@@ -119,14 +149,16 @@ def get_dashboard_data():
             total_input_tokens,
             total_output_tokens,
             model,
-            turn_count
+            turn_count,
+            COALESCE(session_title, 'Yeni Konuşma') as session_title
         FROM sessions
         ORDER BY last_timestamp DESC
     """).fetchall()
 
     sessions_data = []
     for r in session_rows:
-        cost = calc_cost(r["model"], r["total_input_tokens"], r["total_output_tokens"])
+        model_name = normalize_model_name(r["model"])
+        cost = calc_cost(model_name, r["total_input_tokens"], r["total_output_tokens"])
         
         # Calculate session duration
         duration_min = 0
@@ -140,10 +172,11 @@ def get_dashboard_data():
         sessions_data.append({
             "session_id": r["session_id"][:8],
             "project": r["project_name"],
+            "title": r["session_title"],
             "branch": r["git_branch"],
             "last_active": r["last_timestamp"][:16].replace("T", " "),
             "duration_min": duration_min,
-            "model": r["model"],
+            "model": model_name,
             "turns": r["turn_count"],
             "input": r["total_input_tokens"],
             "output": r["total_output_tokens"],
@@ -492,7 +525,7 @@ HTML_PAGE = """<!DOCTYPE html>
         <table>
             <thead>
                 <tr>
-                    <th>Session ID</th>
+                    <th>Konuşma / ID</th>
                     <th>Proje</th>
                     <th>Model</th>
                     <th>Dönüş sayısı</th>
@@ -512,7 +545,7 @@ HTML_PAGE = """<!DOCTYPE html>
 
 <script>
     let rawData = null;
-    let activeModels = new Set();
+    let selectedModel = "Toplam"; // default selection is "Toplam"
     let chartDaily = null;
     let chartPie = null;
 
@@ -528,11 +561,6 @@ HTML_PAGE = """<!DOCTYPE html>
 
             document.getElementById('gen-time').innerText = "Son güncelleme: " + rawData.generated_at;
 
-            // Initialize active models on first load
-            if (activeModels.size === 0) {
-                rawData.all_models.forEach(m => activeModels.add(m));
-            }
-
             renderModelFilters();
             updateDashboard();
         } catch (e) {
@@ -543,16 +571,26 @@ HTML_PAGE = """<!DOCTYPE html>
     function renderModelFilters() {
         const container = document.getElementById('model-chips');
         container.innerHTML = '';
+        
+        // 1. Add "Toplam" chip first
+        const totalChip = document.createElement('div');
+        totalChip.className = 'chip' + (selectedModel === 'Toplam' ? ' active' : '');
+        totalChip.innerText = 'Toplam';
+        totalChip.onclick = () => {
+            selectedModel = 'Toplam';
+            renderModelFilters();
+            updateDashboard();
+        };
+        container.appendChild(totalChip);
+
+        // 2. Add standard model chips
         rawData.all_models.forEach(model => {
             const chip = document.createElement('div');
-            chip.className = 'chip' + (activeModels.has(model) ? ' active' : '');
+            chip.className = 'chip' + (selectedModel === model ? ' active' : '');
             chip.innerText = model;
             chip.onclick = () => {
-                if (activeModels.has(model)) {
-                    if (activeModels.size > 1) activeModels.delete(model);
-                } else {
-                    activeModels.add(model);
-                }
+                selectedModel = model;
+                renderModelFilters();
                 updateDashboard();
             };
             container.appendChild(chip);
@@ -560,8 +598,11 @@ HTML_PAGE = """<!DOCTYPE html>
     }
 
     function updateDashboard() {
-        // Filter session logs and other parameters based on activeModels
-        const filteredSessions = rawData.sessions.filter(s => activeModels.has(s.model));
+        // Filter session logs based on selectedModel
+        const filteredSessions = rawData.sessions.filter(s => {
+            if (selectedModel === "Toplam") return true;
+            return s.model === selectedModel;
+        });
         
         let totalCost = 0;
         let totalTurns = 0;
@@ -588,7 +629,10 @@ HTML_PAGE = """<!DOCTYPE html>
         filteredSessions.forEach(s => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td class="mono">${s.session_id}</td>
+                <td>
+                    <div style="font-weight: 600; color: var(--text-bright);">${s.title}</div>
+                    <div style="font-size: 11px; opacity: 0.6;" class="mono">${s.session_id}</div>
+                </td>
                 <td>${s.project}</td>
                 <td><span class="model-badge">${s.model}</span></td>
                 <td>${s.turns}</td>
@@ -608,7 +652,7 @@ HTML_PAGE = """<!DOCTYPE html>
         // Daily Chart Data
         const dailyAgg = {};
         rawData.daily.forEach(d => {
-            if (!activeModels.has(d.model)) return;
+            if (selectedModel !== "Toplam" && d.model !== selectedModel) return;
             if (!dailyAgg[d.day]) {
                 dailyAgg[d.day] = { input: 0, output: 0, cost: 0 };
             }
@@ -662,10 +706,9 @@ HTML_PAGE = """<!DOCTYPE html>
             }
         });
 
-        // Model Distribution Pie Chart
+        // Model Distribution Doughnut Chart (shows full overview, unaffected by single model selection)
         const modelAgg = {};
         rawData.sessions.forEach(s => {
-            if (!activeModels.has(s.model)) return;
             modelAgg[s.model] = (modelAgg[s.model] || 0) + s.cost;
         });
 
