@@ -793,6 +793,120 @@ HTML_PAGE = r"""<!DOCTYPE html>
         }, 1000);
     }
 
+    const chartDailyTotalPlugin = {
+        id: 'chartDailyTotal',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            const datasets = chart.data.datasets;
+            const labels = chart.data.labels;
+            if (!labels || labels.length === 0) return;
+
+            const totals = new Array(labels.length).fill(0);
+            let anyVisible = false;
+            datasets.forEach((dataset, datasetIndex) => {
+                if (chart.isDatasetVisible(datasetIndex)) {
+                    anyVisible = true;
+                    dataset.data.forEach((val, i) => {
+                        totals[i] += val || 0;
+                    });
+                }
+            });
+
+            if (!anyVisible) return;
+
+            ctx.save();
+            ctx.font = '600 10px Outfit';
+            ctx.fillStyle = '#9aa0b8';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+
+            for (let i = 0; i < labels.length; i++) {
+                const total = totals[i];
+                if (total === 0) continue;
+
+                let minY = Infinity;
+                let barX = null;
+
+                datasets.forEach((dataset, datasetIndex) => {
+                    if (chart.isDatasetVisible(datasetIndex)) {
+                        const meta = chart.getDatasetMeta(datasetIndex);
+                        const element = meta.data[i];
+                        if (element && element.y !== undefined) {
+                            if (element.y < minY) {
+                                minY = element.y;
+                            }
+                            if (barX === null) {
+                                barX = element.x;
+                            }
+                        }
+                    }
+                });
+
+                if (minY !== Infinity && barX !== null) {
+                    ctx.fillText(formatNumber(total), barX, minY - 4);
+                }
+            }
+            ctx.restore();
+        }
+    };
+
+    const chartProjectsTotalPlugin = {
+        id: 'chartProjectsTotal',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            const datasets = chart.data.datasets;
+            const labels = chart.data.labels;
+            if (!labels || labels.length === 0) return;
+
+            const totals = new Array(labels.length).fill(0);
+            let anyVisible = false;
+            datasets.forEach((dataset, datasetIndex) => {
+                if (chart.isDatasetVisible(datasetIndex)) {
+                    anyVisible = true;
+                    dataset.data.forEach((val, i) => {
+                        totals[i] += val || 0;
+                    });
+                }
+            });
+
+            if (!anyVisible) return;
+
+            ctx.save();
+            ctx.font = '600 10px Outfit';
+            ctx.fillStyle = '#9aa0b8';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            for (let i = 0; i < labels.length; i++) {
+                const total = totals[i];
+                if (total === 0) continue;
+
+                let maxX = -Infinity;
+                let barY = null;
+
+                datasets.forEach((dataset, datasetIndex) => {
+                    if (chart.isDatasetVisible(datasetIndex)) {
+                        const meta = chart.getDatasetMeta(datasetIndex);
+                        const element = meta.data[i];
+                        if (element && element.x !== undefined) {
+                            if (element.x > maxX) {
+                                maxX = element.x;
+                            }
+                            if (barY === null) {
+                                barY = element.y;
+                            }
+                        }
+                    }
+                });
+
+                if (maxX !== -Infinity && barY !== null) {
+                    ctx.fillText(formatNumber(total), maxX + 5, barY);
+                }
+            }
+            ctx.restore();
+        }
+    };
+
     async function loadData() {
         try {
             const res = await fetch('/api/data');
@@ -1023,6 +1137,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 scales: {
                     x: {
                         stacked: true,
@@ -1048,9 +1166,21 @@ HTML_PAGE = r"""<!DOCTYPE html>
                             boxWidth: 10,
                             padding: 15
                         }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            footer: (tooltipItems) => {
+                                let sum = 0;
+                                tooltipItems.forEach(function(tooltipItem) {
+                                    sum += tooltipItem.raw;
+                                });
+                                return 'Toplam: ' + formatNumber(sum);
+                            }
+                        }
                     }
                 }
-            }
+            },
+            plugins: [chartDailyTotalPlugin]
         });
 
         // 2. Aggregate Model Cost Distribution for Doughnut Chart (Only range filtered, not model filtered)
@@ -1157,6 +1287,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 indexAxis: 'y', // Makes the chart horizontal
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 scales: {
                     x: {
                         stacked: true,
@@ -1181,9 +1315,21 @@ HTML_PAGE = r"""<!DOCTYPE html>
                             font: { family: 'Outfit', size: 11 },
                             boxWidth: 10
                         }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            footer: (tooltipItems) => {
+                                let sum = 0;
+                                tooltipItems.forEach(function(tooltipItem) {
+                                    sum += tooltipItem.raw;
+                                });
+                                return 'Toplam: ' + formatNumber(sum);
+                            }
+                        }
                     }
                 }
-            }
+            },
+            plugins: [chartProjectsTotalPlugin]
         });
     }
 
