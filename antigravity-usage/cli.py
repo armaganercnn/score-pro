@@ -93,7 +93,7 @@ def cmd_today():
             SUM(cache_creation_tokens) as cwrite,
             COUNT(*)                   as turns
         FROM turns
-        WHERE substr(timestamp, 1, 10) = ?
+        WHERE substr(datetime(timestamp, 'localtime'), 1, 10) = ?
         GROUP BY model_name
         ORDER BY inp + out DESC
     """, (today,)).fetchall()
@@ -101,7 +101,7 @@ def cmd_today():
     session_row = conn.execute("""
         SELECT COUNT(DISTINCT session_id) as count
         FROM turns
-        WHERE substr(timestamp, 1, 10) = ?
+        WHERE substr(datetime(timestamp, 'localtime'), 1, 10) = ?
     """, (today,)).fetchone()
 
     print(f"\nToday's Usage Summary ({today}):")
@@ -139,7 +139,7 @@ def cmd_week():
 
     rows = conn.execute("""
         SELECT
-            substr(timestamp, 1, 10)   as day,
+            substr(datetime(timestamp, 'localtime'), 1, 10)   as day,
             COALESCE(model, 'unknown') as model_name,
             SUM(input_tokens)          as inp,
             SUM(output_tokens)         as out,
@@ -147,7 +147,7 @@ def cmd_week():
             SUM(cache_creation_tokens) as cwrite,
             COUNT(*)                   as turns
         FROM turns
-        WHERE substr(timestamp, 1, 10) >= ?
+        WHERE substr(datetime(timestamp, 'localtime'), 1, 10) >= ?
         GROUP BY day, model_name
         ORDER BY day DESC, inp + out DESC
     """, (start_date,)).fetchall()

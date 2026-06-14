@@ -98,7 +98,7 @@ def get_dashboard_data():
     # 2. Daily usage stats
     daily_rows = conn.execute("""
         SELECT 
-            substr(timestamp, 1, 10) as day,
+            substr(datetime(timestamp, 'localtime'), 1, 10) as day,
             COALESCE(model, 'unknown') as model_name,
             SUM(input_tokens) as inp,
             SUM(output_tokens) as out,
@@ -161,6 +161,7 @@ def get_dashboard_data():
             COALESCE(project_name, 'unknown') as project_name,
             first_timestamp,
             last_timestamp,
+            datetime(last_timestamp, 'localtime') as local_last_timestamp,
             git_branch,
             total_input_tokens,
             total_output_tokens,
@@ -192,7 +193,7 @@ def get_dashboard_data():
             "project": r["project_name"],
             "title": r["session_title"],
             "branch": r["git_branch"],
-            "last_active": r["last_timestamp"][:16].replace("T", " "),
+            "last_active": r["local_last_timestamp"][:16] if r["local_last_timestamp"] else "",
             "duration_min": duration_min,
             "model": model_name,
             "turns": r["turn_count"],
