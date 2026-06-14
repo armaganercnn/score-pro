@@ -188,12 +188,24 @@ def get_dashboard_data():
         except Exception:
             pass
 
+        # Format last_active as DD.MM.YYYY<br>HH:MM
+        formatted_last_active = ""
+        if r["local_last_timestamp"]:
+            parts = r["local_last_timestamp"].split(" ")
+            if len(parts) == 2:
+                date_part, time_part = parts
+                y, m, d = date_part.split("-")
+                formatted_last_active = f"{d}.{m}.{y}<br>{time_part[:5]}"
+            else:
+                formatted_last_active = r["local_last_timestamp"][:16].replace("T", " ")
+
         sessions_data.append({
             "session_id": r["session_id"][:8],
             "project": r["project_name"],
             "title": r["session_title"],
             "branch": r["git_branch"],
-            "last_active": r["local_last_timestamp"][:16] if r["local_last_timestamp"] else "",
+            "last_active": formatted_last_active,
+            "last_active_raw": r["local_last_timestamp"][:10] if r["local_last_timestamp"] else "",
             "duration_min": duration_min,
             "model": model_name,
             "turns": r["turn_count"],
@@ -1019,7 +1031,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             if (!selectedModels.has(s.model)) return false;
             // Date filter
             if (cutoffDate) {
-                const sDate = new Date(s.last_active.substring(0, 10) + 'T00:00:00');
+                const sDate = new Date(s.last_active_raw + 'T00:00:00');
                 if (sDate < cutoffDate) return false;
             }
             return true;
@@ -1206,7 +1218,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         const modelAgg = {};
         rawData.sessions.forEach(s => {
             if (cutoffDate) {
-                const sDate = new Date(s.last_active.substring(0, 10) + 'T00:00:00');
+                const sDate = new Date(s.last_active_raw + 'T00:00:00');
                 if (sDate < cutoffDate) return;
             }
             const cleanName = cleanModelName(s.model);
@@ -1260,7 +1272,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         rawData.sessions.forEach(s => {
             if (!selectedModels.has(s.model)) return;
             if (cutoffDate) {
-                const sDate = new Date(s.last_active.substring(0, 10) + 'T00:00:00');
+                const sDate = new Date(s.last_active_raw + 'T00:00:00');
                 if (sDate < cutoffDate) return;
             }
             const projName = s.project || 'unknown';
