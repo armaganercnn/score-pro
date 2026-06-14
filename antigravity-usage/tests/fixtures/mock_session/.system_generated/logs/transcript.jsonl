@@ -1,0 +1,4 @@
+{"created_at": "2026-06-14T08:00:00Z", "type": "USER_INPUT", "content": "Hello computer, show me usage stats"}
+{"created_at": "2026-06-14T08:00:05Z", "type": "PLANNER_RESPONSE", "content": "I am scanning the directory.", "thinking": "Thinking process...", "tool_calls": [{"name": "list_dir", "args": {"DirectoryPath": "/Users/armaganercan/.gemini/antigravity/scratch/antigravity-usage"}}], "step_index": 1}
+{"created_at": "2026-06-14T08:01:00Z", "type": "USER_INPUT", "content": "<USER_SETTINGS_CHANGE>changed setting `Model Selection` from `Gemini 3.5 Flash (Medium)` to `Claude Sonnet 4.6 (Thinking)`</USER_SETTINGS_CHANGE>"}
+{"created_at": "2026-06-14T08:01:10Z", "type": "PLANNER_RESPONSE", "content": "Updated settings.", "thinking": "Done.", "step_index": 2}

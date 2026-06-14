@@ -9,8 +9,8 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 
-BRAIN_DIR = Path("/Users/armaganercan/.gemini/antigravity/brain")
-DB_PATH = Path("/Users/armaganercan/.gemini/antigravity/scratch/antigravity-usage/usage.db")
+BRAIN_DIR = Path(os.environ.get("ANTIGRAVITY_BRAIN_DIR", "/Users/armaganercan/.gemini/antigravity/brain"))
+DB_PATH = Path(os.environ.get("ANTIGRAVITY_DB_PATH", "/Users/armaganercan/.gemini/antigravity/scratch/antigravity-usage/usage.db"))
 
 # Default model if none detected
 DEFAULT_MODEL = "Gemini 3.5 Flash (Medium)"
@@ -89,7 +89,7 @@ def parse_settings_change(content):
     text_to_search = match_block.group(1) if match_block else content
     
     # Look for: changed setting `Model Selection` from X to Y
-    match = re.search(r"changed setting\s+`Model Selection`\s+from\s+.*?\s+to\s+([^`\n\.]+)", text_to_search)
+    match = re.search(r"changed setting\s+`Model Selection`\s+from\s+.*?\s+to\s+([^`\n]+)", text_to_search)
     if match:
         val = match.group(1).strip()
         # Clean up any remaining trailing stuff
@@ -229,7 +229,7 @@ def scan_transcript_file(filepath, session_id):
                 cache_creation = input_tokens
             else:
                 cache_read = cumulative_tokens
-                cache_creation = input_tokens
+                cache_creation = 0
 
             cumulative_tokens += input_tokens + output_tokens
 

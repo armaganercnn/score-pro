@@ -8,18 +8,18 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime, date, timedelta
 
-DB_PATH = Path("/Users/armaganercan/.gemini/antigravity/scratch/antigravity-usage/usage.db")
+DB_PATH = Path(os.environ.get("ANTIGRAVITY_DB_PATH", "/Users/armaganercan/.gemini/antigravity/scratch/antigravity-usage/usage.db"))
 
 # Pricing catalog per 1,000,000 tokens
 PRICING = {
-    "Gemini 3.5 Flash (Medium)":   {"input": 0.075, "output": 0.30},
-    "Gemini 3.5 Flash (High)":     {"input": 0.075, "output": 0.30},
-    "Gemini 3.5 Flash (Low)":      {"input": 0.075, "output": 0.30},
-    "Gemini 3.1 Pro (Low)":        {"input": 1.25,  "output": 5.00},
-    "Gemini 3.1 Pro (High)":       {"input": 1.25,  "output": 5.00},
-    "Claude Sonnet 4.6 (Thinking)":{"input": 3.00,  "output": 15.00},
-    "Claude Opus 4.6 (Thinking)":  {"input": 15.00, "output": 75.00},
-    "GPT-OSS 120B (Medium)":       {"input": 0.60,  "output": 0.60},
+    "Gemini 3.5 Flash (Medium)":   {"input": 0.075, "output": 0.30, "cache_read": 0.0075, "cache_write": 0.09375},
+    "Gemini 3.5 Flash (High)":     {"input": 0.075, "output": 0.30, "cache_read": 0.0075, "cache_write": 0.09375},
+    "Gemini 3.5 Flash (Low)":      {"input": 0.075, "output": 0.30, "cache_read": 0.0075, "cache_write": 0.09375},
+    "Gemini 3.1 Pro (Low)":        {"input": 1.25,  "output": 5.00, "cache_read": 0.125,  "cache_write": 1.5625},
+    "Gemini 3.1 Pro (High)":       {"input": 1.25,  "output": 5.00, "cache_read": 0.125,  "cache_write": 1.5625},
+    "Claude Sonnet 4.6 (Thinking)":{"input": 3.00,  "output": 15.00, "cache_read": 0.30,   "cache_write": 3.75},
+    "Claude Opus 4.6 (Thinking)":  {"input": 15.00, "output": 75.00, "cache_read": 1.50,   "cache_write": 18.75},
+    "GPT-OSS 120B (Medium)":       {"input": 0.60,  "output": 0.60, "cache_read": 0.06,   "cache_write": 0.75},
 }
 
 def get_pricing(model):
@@ -41,9 +41,17 @@ def get_pricing(model):
     
     return PRICING["Gemini 3.5 Flash (Medium)"]
 
-def calc_cost(model, inp, out):
+def calc_cost(model, inp, out, cache_read=0, cache_write=0):
     p = get_pricing(model)
-    return (inp * p["input"] / 1_000_000) + (out * p["output"] / 1_000_000)
+    cr_rate = p.get("cache_read", p["input"] * 0.1)
+    cw_rate = p.get("cache_write", p["input"] * 1.25)
+    normal_input = max(0, inp - cache_write)
+    return (
+        (cache_write * cw_rate) +
+        (cache_read * cr_rate) +
+        (normal_input * p["input"]) +
+        (out * p["output"])
+    ) / 1_000_000
 
 def fmt(n):
     if n >= 1_000_000:
@@ -81,6 +89,8 @@ def cmd_today():
             COALESCE(model, 'unknown') as model_name,
             SUM(input_tokens)          as inp,
             SUM(output_tokens)         as out,
+            SUM(cache_read_tokens)     as cread,
+            SUM(cache_creation_tokens) as cwrite,
             COUNT(*)                   as turns
         FROM turns
         WHERE substr(timestamp, 1, 10) = ?
@@ -112,7 +122,7 @@ def cmd_today():
     print(f"{'Model':<30} | {'Turns':<6} | {'Input':<8} | {'Output':<8} | {'Cost':<8}")
     hr("-")
     for r in rows:
-        cost = calc_cost(r["model_name"], r["inp"], r["out"])
+        cost = calc_cost(r["model_name"], r["inp"], r["out"], r["cread"], r["cwrite"])
         print(f"{r['model_name']:<30} | {r['turns']:<6} | {fmt(r['inp']):<8} | {fmt(r['out']):<8} | {fmt_cost(cost):<8}")
         total_inp += r["inp"]
         total_out += r["out"]
@@ -133,6 +143,8 @@ def cmd_week():
             COALESCE(model, 'unknown') as model_name,
             SUM(input_tokens)          as inp,
             SUM(output_tokens)         as out,
+            SUM(cache_read_tokens)     as cread,
+            SUM(cache_creation_tokens) as cwrite,
             COUNT(*)                   as turns
         FROM turns
         WHERE substr(timestamp, 1, 10) >= ?
@@ -167,7 +179,7 @@ def cmd_week():
             day_out = 0
             day_cost = 0.0
 
-        cost = calc_cost(r["model_name"], r["inp"], r["out"])
+        cost = calc_cost(r["model_name"], r["inp"], r["out"], r["cread"], r["cwrite"])
         print(f"  {r['model_name']:<33} | {r['turns']:<6} | {fmt(r['inp']):<8} | {fmt(r['out']):<8} | {fmt_cost(cost):<8}")
         day_inp += r["inp"]
         day_out += r["out"]
@@ -188,6 +200,8 @@ def cmd_stats():
             COALESCE(model, 'unknown') as model_name,
             SUM(input_tokens)          as inp,
             SUM(output_tokens)         as out,
+            SUM(cache_read_tokens)     as cread,
+            SUM(cache_creation_tokens) as cwrite,
             COUNT(*)                   as turns
         FROM turns
         GROUP BY model_name
@@ -214,7 +228,7 @@ def cmd_stats():
     print(f"{'Model':<30} | {'Turns':<6} | {'Input':<8} | {'Output':<8} | {'Cost':<8}")
     hr("-")
     for r in rows:
-        cost = calc_cost(r["model_name"], r["inp"], r["out"])
+        cost = calc_cost(r["model_name"], r["inp"], r["out"], r["cread"], r["cwrite"])
         print(f"{r['model_name']:<30} | {r['turns']:<6} | {fmt(r['inp']):<8} | {fmt(r['out']):<8} | {fmt_cost(cost):<8}")
         total_inp += r["inp"]
         total_out += r["out"]

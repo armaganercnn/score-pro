@@ -10,7 +10,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from datetime import datetime
 
-DB_PATH = Path("/Users/armaganercan/.gemini/antigravity/scratch/antigravity-usage/usage.db")
+DB_PATH = Path(os.environ.get("ANTIGRAVITY_DB_PATH", "/Users/armaganercan/.gemini/antigravity/scratch/antigravity-usage/usage.db"))
 
 # Pricing catalog per 1,000,000 tokens
 PRICING = {
@@ -46,7 +46,13 @@ def calc_cost(model, inp, out, cache_read=0, cache_write=0):
     p = get_pricing(model)
     cr_rate = p.get("cache_read", p["input"] * 0.1)
     cw_rate = p.get("cache_write", p["input"] * 1.25)
-    return (cache_read * cr_rate / 1_000_000) + (cache_write * cw_rate / 1_000_000) + (out * p["output"] / 1_000_000)
+    normal_input = max(0, inp - cache_write)
+    return (
+        (cache_write * cw_rate) +
+        (cache_read * cr_rate) +
+        (normal_input * p["input"]) +
+        (out * p["output"])
+    ) / 1_000_000
 
 def normalize_model_name(model):
     if not model:
