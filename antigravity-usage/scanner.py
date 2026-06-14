@@ -68,53 +68,37 @@ def init_db(conn):
 def project_name_from_cwd(cwd):
     if not cwd:
         return "Genel Sohbet"
-    
-    cwd_clean = cwd.strip('"\'').replace("\\", "/")
+    cwd_clean = cwd.strip('"\' ').replace("\\", "/")
     parts = [p for p in cwd_clean.split("/") if p]
-    
-    if "brain" in parts:
+    if not parts or "brain" in parts or ".system_generated" in parts or (".gemini" in parts and "scratch" not in parts):
         return "Genel Sohbet"
 
+    # 1. Check sub-projects under scratch
+    if "scratch" in parts:
+        idx = parts.index("scratch")
+        if idx + 1 < len(parts) and parts[idx + 1] not in (".agents", "worktrees"):
+            return parts[idx + 1]
+
+    # 2. Check git repositories
     try:
         curr = Path(cwd_clean)
-        while curr and curr != curr.parent:
-            if (curr / ".git").exists():
+        while curr and curr != curr.parent and curr != Path.home():
+            if curr.name != "scratch" and (curr / ".git").exists():
                 return curr.name
-            if curr == Path.home():
-                break
             curr = curr.parent
     except Exception:
         pass
 
-    if ".gemini" in parts and "scratch" in parts:
-        try:
-            idx = parts.index("scratch")
-            if idx + 1 < len(parts):
-                return parts[idx + 1]
-        except ValueError:
-            pass
-            
-    if "antigravity" in parts and ".gemini" not in parts:
-        try:
-            idx = parts.index("antigravity")
-            if idx + 1 < len(parts):
-                return parts[idx + 1]
-        except ValueError:
-            pass
-
-    try:
-        home_parts = [hp for hp in str(Path.home()).replace("\\", "/").split("/") if hp]
-        if len(parts) > len(home_parts) and parts[:len(home_parts)] == home_parts:
-            return parts[len(home_parts)]
-    except Exception:
-        pass
-
-    if parts:
-        last_part = parts[-1]
-        if last_part in ("src", "components", "pages", "assets", "backend", "frontend", "utils", "lib"):
-            return parts[-2] if len(parts) >= 2 else last_part
-        return last_part
-
+    # 3. Fallback
+    ignore = {
+        "Users", "armaganercan", ".gemini", "antigravity", "scratch", "Projects", 
+        "Desktop", "Downloads", "Library", "bin", "config", "projects", "plugins", 
+        "globalStorage", "rules", "scripts", ".cagent", ".zshenv", ".github", "User", 
+        "caveman", ".", "backend", "frontend-dev", "skills", "skills-disabled"
+    }
+    for p in reversed(parts):
+        if p not in ignore and p not in (".agents", "worktrees", "src", "components", "pages", "assets", "backend", "frontend", "utils", "lib"):
+            return p
     return "Genel Sohbet"
 
 def migrate_existing_sessions(conn):
@@ -177,12 +161,16 @@ def extract_paths_from_args(args):
         return None
     for key in ["Cwd", "SearchPath", "DirectoryPath", "TargetFile", "AbsolutePath"]:
         if key in args and isinstance(args[key], str):
-            path_str = args[key].strip('"\'')
+            path_str = args[key]
+            while isinstance(path_str, str) and any(path_str.startswith(c) or path_str.endswith(c) for c in ['"', "'", ' ']):
+                path_str = path_str.strip('"\' ')
+            if not isinstance(path_str, str) or not path_str:
+                continue
             # If it's a file path, get parent directory
             p = Path(path_str)
             if p.suffix:
-                return str(p.parent)
-            return str(p)
+                return str(p.parent).strip('"\' ')
+            return str(p).strip('"\' ')
     return None
 
 def extract_session_title(content):
@@ -209,134 +197,93 @@ def extract_session_title(content):
         title = title[:57] + "..."
     return title
 
-def scan_transcript_file(filepath, session_id):
-    """Parses an Antigravity transcript.jsonl file."""
-    turns = []
-    session_meta = {
-        "session_id": session_id,
-        "project_name": "Genel Sohbet",
-        "session_title": "New Conversation",
-        "first_timestamp": None,
-        "last_timestamp": None,
-        "git_branch": "main",
-        "model": DEFAULT_MODEL,
-        "total_input_tokens": 0,
-        "total_output_tokens": 0,
-        "total_cache_read": 0,
-        "total_cache_creation": 0,
-        "turn_count": 0
-    }
-
-    current_model = DEFAULT_MODEL
-    current_cwd = str(Path.home())
-    last_user_input = ""
-    first_user_input_content = None
-    first_ts = None
-    last_ts = None
-    cumulative_tokens = 0
-
+def _load_transcript_steps(filepath):
     if not os.path.exists(filepath):
-        return None, []
-
+        return []
+    steps = []
     with open(filepath, "r", encoding="utf-8", errors="replace") as f:
-        lines = f.readlines()
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    steps.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+    return steps
 
-    line_count = 0
-    for idx, line in enumerate(lines):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            record = json.loads(line)
-        except json.JSONDecodeError:
-            continue
+def estimate_step_tokens(step):
+    content = str(step.get("content") or "")
+    thinking = str(step.get("thinking") or "")
+    tool_calls = step.get("tool_calls") or []
+    tc_str = json.dumps(tool_calls) if tool_calls else ""
+    step_text = content
+    if thinking:
+        step_text += "\n" + thinking
+    if tc_str:
+        step_text += "\n" + tc_str
+    return estimate_tokens(step_text)
 
-        line_count += 1
-        ts = record.get("created_at")
-        if ts:
-            if not first_ts:
-                first_ts = ts
-            last_ts = ts
+def _calc_turn_tokens(idx, last_response_idx, step_tokens):
+    SYSTEM_PROMPT_ESTIMATE = 4000
+    if last_response_idx == -1:
+        t_in = sum(step_tokens[:idx]) + SYSTEM_PROMPT_ESTIMATE
+        t_cr = t_in
+        t_rd = 0
+    else:
+        t_rd = sum(step_tokens[:last_response_idx + 1]) + SYSTEM_PROMPT_ESTIMATE
+        t_in = sum(step_tokens[last_response_idx + 1:idx])
+        t_cr = 0
+    return t_in, t_cr, t_rd
 
-        # Parse model updates from settings changes
-        content = record.get("content", "")
-        detected_model = parse_settings_change(content)
-        if detected_model:
-            current_model = detected_model
-            session_meta["model"] = current_model
+def _update_session_cwd_and_model(record, current_cwd, current_model, session_meta):
+    content = record.get("content", "")
+    detected_model = parse_settings_change(content)
+    if detected_model:
+        current_model = detected_model
+        session_meta["model"] = current_model
 
-        # Extract Cwd / project name from tool calls/arguments
-        tool_calls = record.get("tool_calls", [])
-        if tool_calls:
-            for tc in tool_calls:
-                args = tc.get("args")
-                inferred_path = extract_paths_from_args(args)
-                if inferred_path:
-                    current_cwd = inferred_path
-                    session_meta["project_name"] = project_name_from_cwd(current_cwd)
+    tool_calls = record.get("tool_calls", [])
+    for tc in tool_calls:
+        inferred = extract_paths_from_args(tc.get("args"))
+        if inferred:
+            current_cwd = inferred
+            det = project_name_from_cwd(current_cwd)
+            if det != "Genel Sohbet":
+                session_meta["project_name"] = det
+    return current_cwd, current_model
 
-        # Handle turns
-        rtype = record.get("type")
-        source = record.get("source")
-
-        if rtype == "USER_INPUT" or source == "USER_EXPLICIT":
-            last_user_input += "\n" + content
-            if not first_user_input_content and content.strip():
-                first_user_input_content = content
-        elif rtype == "PLANNER_RESPONSE" or source == "MODEL":
-            # This is a model response. Create a turn.
-            thinking = record.get("thinking", "")
-            tc_str = json.dumps(tool_calls) if tool_calls else ""
-            response_content = content + "\n" + thinking + "\n" + tc_str
-
-            input_tokens = estimate_tokens(last_user_input)
-            output_tokens = estimate_tokens(response_content)
-
-            # Estimate prompt caching
-            if len(turns) == 0:
-                cache_read = 0
-                cache_creation = input_tokens
-            else:
-                cache_read = cumulative_tokens
-                cache_creation = 0
-
-            cumulative_tokens += input_tokens + output_tokens
-
-            # Determine primary tool called
-            tool_name = ""
-            if tool_calls:
-                tool_name = tool_calls[0].get("name", "")
-
-            message_id = f"{session_id}_step_{record.get('step_index', idx)}"
-
+def scan_transcript_file(filepath, session_id):
+    steps = _load_transcript_steps(filepath)
+    if not steps:
+        return None, []
+    session_meta = {"session_id": session_id, "project_name": "Genel Sohbet", "session_title": "New Conversation", "git_branch": "main", "model": DEFAULT_MODEL, "total_input_tokens": 0, "total_output_tokens": 0, "total_cache_read": 0, "total_cache_creation": 0, "turn_count": 0}
+    step_tokens = [estimate_step_tokens(s) for s in steps]
+    current_model, current_cwd, first_title, first_ts, last_ts, last_response_idx, turns = DEFAULT_MODEL, str(Path.home()), None, None, None, -1, []
+    for idx, rec in enumerate(steps):
+        ts = rec.get("created_at")
+        first_ts, last_ts = first_ts or ts, ts or last_ts
+        current_cwd, current_model = _update_session_cwd_and_model(rec, current_cwd, current_model, session_meta)
+        rtype, source, content = rec.get("type"), rec.get("source"), rec.get("content") or ""
+        if (rtype == "USER_INPUT" or source == "USER_EXPLICIT") and content.strip():
+            first_title = first_title or content
+        if rtype in ("PLANNER_RESPONSE", "ASK_QUESTION"):
+            t_in, t_cr, t_rd = _calc_turn_tokens(idx, last_response_idx, step_tokens)
+            t_out = step_tokens[idx]
+            tc = rec.get("tool_calls") or []
             turns.append({
-                "session_id": session_id,
-                "timestamp": ts or datetime.utcnow().isoformat() + "Z",
-                "model": current_model,
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-                "cache_read_tokens": cache_read,
-                "cache_creation_tokens": cache_creation,
-                "tool_name": tool_name,
-                "cwd": current_cwd,
-                "message_id": message_id
+                "session_id": session_id, "timestamp": ts or datetime.utcnow().isoformat() + "Z",
+                "model": current_model, "input_tokens": t_in, "output_tokens": t_out,
+                "cache_read_tokens": t_rd, "cache_creation_tokens": t_cr,
+                "tool_name": tc[0].get("name", "") if tc else "", "cwd": current_cwd,
+                "message_id": f"{session_id}_step_{rec.get('step_index', idx)}"
             })
-
-            # Add up tokens
-            session_meta["total_input_tokens"] += input_tokens
-            session_meta["total_output_tokens"] += output_tokens
-            session_meta["total_cache_read"] += cache_read
-            session_meta["total_cache_creation"] += cache_creation
+            for k, v in [("total_input_tokens", t_in), ("total_output_tokens", t_out), ("total_cache_read", t_rd), ("total_cache_creation", t_cr)]:
+                session_meta[k] += v
             session_meta["turn_count"] += 1
-
-            # Reset user input buffer for the next turn
-            last_user_input = ""
-
-    session_meta["first_timestamp"] = first_ts or datetime.utcnow().isoformat() + "Z"
-    session_meta["last_timestamp"] = last_ts or datetime.utcnow().isoformat() + "Z"
-    session_meta["session_title"] = extract_session_title(first_user_input_content)
-
+            last_response_idx = idx
+    session_meta.update({"first_timestamp": first_ts or datetime.utcnow().isoformat() + "Z", "last_timestamp": last_ts or datetime.utcnow().isoformat() + "Z", "session_title": extract_session_title(first_title)})
     return session_meta, turns
+
 
 def scan(projects_dir=None):
     """Main scan function called by CLI."""
