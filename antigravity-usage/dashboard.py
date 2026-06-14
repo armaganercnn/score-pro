@@ -211,7 +211,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claude Code Kullanım Gösterge Paneli</title>
+    <title>Google Antigravity 2.0</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -610,7 +610,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 <body>
 
 <header>
-    <h1>Claude Code Kullanım Gösterge Paneli</h1>
+    <h1>Google Antigravity 2.0</h1>
     <div class="right-meta">
         <span id="gen-time">Son güncelleme: -</span>
         <span>·</span>
