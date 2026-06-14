@@ -628,6 +628,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     <div class="filter-row">
         <div class="filter-label">Aralık:</div>
         <div class="chip-container" id="range-chips">
+            <div class="chip range-chip" data-range="1d">1g</div>
             <div class="chip range-chip" data-range="7d">7g</div>
             <div class="chip range-chip active" data-range="30d">30g</div>
             <div class="chip range-chip" data-range="90d">90g</div>

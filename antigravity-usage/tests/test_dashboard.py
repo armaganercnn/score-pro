@@ -134,6 +134,7 @@ def test_dashboard_home(dashboard_server):
         assert response.status == 200
         html = response.read().decode("utf-8")
         assert "Google Antigravity 2.0" in html
+        assert 'data-range="1d"' in html
 
 def test_dashboard_api_data(dashboard_server):
     url = f"{dashboard_server}/api/data"
