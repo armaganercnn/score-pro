@@ -67,11 +67,80 @@ def init_db(conn):
 
 def project_name_from_cwd(cwd):
     if not cwd:
-        return "unknown"
-    parts = cwd.replace("\\", "/").rstrip("/").split("/")
-    if len(parts) >= 2:
-        return "/".join(parts[-2:])
-    return parts[-1] if parts else "unknown"
+        return "Genel Sohbet"
+    
+    cwd_clean = cwd.strip('"\'').replace("\\", "/")
+    parts = [p for p in cwd_clean.split("/") if p]
+    
+    if "brain" in parts:
+        return "Genel Sohbet"
+
+    try:
+        curr = Path(cwd_clean)
+        while curr and curr != curr.parent:
+            if (curr / ".git").exists():
+                return curr.name
+            if curr == Path.home():
+                break
+            curr = curr.parent
+    except Exception:
+        pass
+
+    if ".gemini" in parts and "scratch" in parts:
+        try:
+            idx = parts.index("scratch")
+            if idx + 1 < len(parts):
+                return parts[idx + 1]
+        except ValueError:
+            pass
+            
+    if "antigravity" in parts and ".gemini" not in parts:
+        try:
+            idx = parts.index("antigravity")
+            if idx + 1 < len(parts):
+                return parts[idx + 1]
+        except ValueError:
+            pass
+
+    try:
+        home_parts = [hp for hp in str(Path.home()).replace("\\", "/").split("/") if hp]
+        if len(parts) > len(home_parts) and parts[:len(home_parts)] == home_parts:
+            return parts[len(home_parts)]
+    except Exception:
+        pass
+
+    if parts:
+        last_part = parts[-1]
+        if last_part in ("src", "components", "pages", "assets", "backend", "frontend", "utils", "lib"):
+            return parts[-2] if len(parts) >= 2 else last_part
+        return last_part
+
+    return "Genel Sohbet"
+
+def migrate_existing_sessions(conn):
+    """Clean up existing project names to follow the new naming format."""
+    conn.execute("UPDATE turns SET cwd = REPLACE(cwd, '\"', '') WHERE cwd LIKE '%\"%'")
+    conn.execute("UPDATE sessions SET project_name = REPLACE(project_name, '\"', '') WHERE project_name LIKE '%\"%'")
+    conn.commit()
+
+    cursor = conn.execute("SELECT DISTINCT session_id, project_name FROM sessions")
+    sessions_to_update = []
+    for row in cursor.fetchall():
+        sid = row[0]
+        pname = row[1]
+        
+        if pname in ("antigravity-scratch", "unknown") or "/" in pname or pname.startswith("brain"):
+            turn_cursor = conn.execute("SELECT cwd FROM turns WHERE session_id = ? AND cwd IS NOT NULL AND cwd != '' LIMIT 1", (sid,))
+            turn_row = turn_cursor.fetchone()
+            new_pname = project_name_from_cwd(turn_row[0]) if turn_row else "Genel Sohbet"
+            
+            if new_pname != pname:
+                sessions_to_update.append((new_pname, sid))
+                
+    if sessions_to_update:
+        conn.executemany("UPDATE sessions SET project_name = ? WHERE session_id = ?", sessions_to_update)
+        conn.commit()
+        print(f"Migrated {len(sessions_to_update)} sessions to clean project names.")
 
 def estimate_tokens(text):
     if not text:
@@ -108,7 +177,7 @@ def extract_paths_from_args(args):
         return None
     for key in ["Cwd", "SearchPath", "DirectoryPath", "TargetFile", "AbsolutePath"]:
         if key in args and isinstance(args[key], str):
-            path_str = args[key]
+            path_str = args[key].strip('"\'')
             # If it's a file path, get parent directory
             p = Path(path_str)
             if p.suffix:
@@ -145,7 +214,7 @@ def scan_transcript_file(filepath, session_id):
     turns = []
     session_meta = {
         "session_id": session_id,
-        "project_name": "antigravity-scratch",
+        "project_name": "Genel Sohbet",
         "session_title": "New Conversation",
         "first_timestamp": None,
         "last_timestamp": None,
@@ -275,6 +344,7 @@ def scan(projects_dir=None):
     conn = sqlite3.connect(DB_PATH)
     init_db(conn)
 
+    migrate_existing_sessions(conn)
     print("Scanning Antigravity logs...")
 
     # Traverse all folders under brain directory
