@@ -14,14 +14,14 @@ DB_PATH = Path("/Users/armaganercan/.gemini/antigravity/scratch/antigravity-usag
 
 # Pricing catalog per 1,000,000 tokens
 PRICING = {
-    "Gemini 3.5 Flash (Medium)":   {"input": 0.075, "output": 0.30},
-    "Gemini 3.5 Flash (High)":     {"input": 0.075, "output": 0.30},
-    "Gemini 3.5 Flash (Low)":      {"input": 0.075, "output": 0.30},
-    "Gemini 3.1 Pro (Low)":        {"input": 1.25,  "output": 5.00},
-    "Gemini 3.1 Pro (High)":       {"input": 1.25,  "output": 5.00},
-    "Claude Sonnet 4.6 (Thinking)":{"input": 3.00,  "output": 15.00},
-    "Claude Opus 4.6 (Thinking)":  {"input": 15.00, "output": 75.00},
-    "GPT-OSS 120B (Medium)":       {"input": 0.60,  "output": 0.60},
+    "Gemini 3.5 Flash (Medium)":   {"input": 0.075, "output": 0.30, "cache_read": 0.0075, "cache_write": 0.09375},
+    "Gemini 3.5 Flash (High)":     {"input": 0.075, "output": 0.30, "cache_read": 0.0075, "cache_write": 0.09375},
+    "Gemini 3.5 Flash (Low)":      {"input": 0.075, "output": 0.30, "cache_read": 0.0075, "cache_write": 0.09375},
+    "Gemini 3.1 Pro (Low)":        {"input": 1.25,  "output": 5.00, "cache_read": 0.125,  "cache_write": 1.5625},
+    "Gemini 3.1 Pro (High)":       {"input": 1.25,  "output": 5.00, "cache_read": 0.125,  "cache_write": 1.5625},
+    "Claude Sonnet 4.6 (Thinking)":{"input": 3.00,  "output": 15.00, "cache_read": 0.30,   "cache_write": 3.75},
+    "Claude Opus 4.6 (Thinking)":  {"input": 15.00, "output": 75.00, "cache_read": 1.50,   "cache_write": 18.75},
+    "GPT-OSS 120B (Medium)":       {"input": 0.60,  "output": 0.60, "cache_read": 0.06,   "cache_write": 0.75},
 }
 
 def get_pricing(model):
@@ -42,9 +42,11 @@ def get_pricing(model):
     
     return PRICING["Gemini 3.5 Flash (Medium)"]
 
-def calc_cost(model, inp, out):
+def calc_cost(model, inp, out, cache_read=0, cache_write=0):
     p = get_pricing(model)
-    return (inp * p["input"] / 1_000_000) + (out * p["output"] / 1_000_000)
+    cr_rate = p.get("cache_read", p["input"] * 0.1)
+    cw_rate = p.get("cache_write", p["input"] * 1.25)
+    return (cache_read * cr_rate / 1_000_000) + (cache_write * cw_rate / 1_000_000) + (out * p["output"] / 1_000_000)
 
 def normalize_model_name(model):
     if not model:
@@ -94,6 +96,8 @@ def get_dashboard_data():
             COALESCE(model, 'unknown') as model_name,
             SUM(input_tokens) as inp,
             SUM(output_tokens) as out,
+            SUM(cache_read_tokens) as cread,
+            SUM(cache_creation_tokens) as cwrite,
             COUNT(*) as turns
         FROM turns
         GROUP BY day, model_name
@@ -103,12 +107,14 @@ def get_dashboard_data():
     daily_data = []
     for r in daily_rows:
         model_name = normalize_model_name(r["model_name"])
-        cost = calc_cost(model_name, r["inp"], r["out"])
+        cost = calc_cost(model_name, r["inp"], r["out"], r["cread"], r["cwrite"])
         daily_data.append({
             "day": r["day"],
             "model": model_name,
             "input": r["inp"],
             "output": r["out"],
+            "cache_read": r["cread"],
+            "cache_creation": r["cwrite"],
             "turns": r["turns"],
             "cost": cost
         })
@@ -120,6 +126,8 @@ def get_dashboard_data():
             COALESCE(model, 'unknown') as model_name,
             SUM(total_input_tokens) as inp,
             SUM(total_output_tokens) as out,
+            SUM(total_cache_read) as cread,
+            SUM(total_cache_creation) as cwrite,
             COUNT(*) as session_count
         FROM sessions
         GROUP BY proj, model_name
@@ -128,12 +136,14 @@ def get_dashboard_data():
     project_data = []
     for r in project_rows:
         model_name = normalize_model_name(r["model_name"])
-        cost = calc_cost(model_name, r["inp"], r["out"])
+        cost = calc_cost(model_name, r["inp"], r["out"], r["cread"], r["cwrite"])
         project_data.append({
             "project": r["proj"],
             "model": model_name,
             "input": r["inp"],
             "output": r["out"],
+            "cache_read": r["cread"],
+            "cache_creation": r["cwrite"],
             "sessions": r["session_count"],
             "cost": cost
         })
@@ -148,6 +158,8 @@ def get_dashboard_data():
             git_branch,
             total_input_tokens,
             total_output_tokens,
+            total_cache_read,
+            total_cache_creation,
             model,
             turn_count,
             COALESCE(session_title, 'Yeni Konuşma') as session_title
@@ -158,7 +170,7 @@ def get_dashboard_data():
     sessions_data = []
     for r in session_rows:
         model_name = normalize_model_name(r["model"])
-        cost = calc_cost(model_name, r["total_input_tokens"], r["total_output_tokens"])
+        cost = calc_cost(model_name, r["total_input_tokens"], r["total_output_tokens"], r["total_cache_read"], r["total_cache_creation"])
         
         # Calculate session duration
         duration_min = 0
@@ -180,6 +192,8 @@ def get_dashboard_data():
             "turns": r["turn_count"],
             "input": r["total_input_tokens"],
             "output": r["total_output_tokens"],
+            "cache_read": r["total_cache_read"],
+            "cache_creation": r["total_cache_creation"],
             "cost": cost
         })
 
@@ -192,28 +206,32 @@ def get_dashboard_data():
         "sessions": sessions_data,
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
-
-HTML_PAGE = """<!DOCTYPE html>
+HTML_PAGE = r"""<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antigravity Multi-Model Dashboard</title>
+    <title>Claude Code Kullanım Gösterge Paneli</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0b0c10;
-            --card-bg: #1f2833;
-            --card-border: #2e3c4f;
-            --text-main: #c5c6c7;
+            --bg: #090a0f;
+            --card-bg: #131520;
+            --card-border: #1f2232;
+            --text-main: #9aa0b8;
             --text-bright: #ffffff;
-            --text-muted: #66fcf1;
-            --accent: #45f3ff;
-            --accent-hover: #1f2833;
-            --blue: #0080ff;
-            --green: #2ecc71;
-            --red: #e74c3c;
+            --text-muted: #5d627a;
+            --orange-primary: #ff7a59;
+            --orange-active: #d97706;
+            --orange-bg-muted: rgba(255, 122, 89, 0.05);
+            --orange-border: rgba(255, 122, 89, 0.3);
+            
+            /* Chart colors */
+            --color-input: #4f7ef7;
+            --color-output: #a27dfa;
+            --color-cache-read: #36b37e;
+            --color-cache-creation: #ffab00;
         }
 
         * {
@@ -227,97 +245,132 @@ HTML_PAGE = """<!DOCTYPE html>
             color: var(--text-main);
             font-family: 'Outfit', -apple-system, sans-serif;
             padding-bottom: 50px;
+            letter-spacing: 0.2px;
         }
 
         header {
-            background-color: var(--card-bg);
-            border-bottom: 2px solid var(--card-border);
-            padding: 20px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 30px 15px 30px;
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
 
         header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--text-bright);
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--orange-primary);
             letter-spacing: 0.5px;
         }
 
         header .right-meta {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
+            font-size: 13px;
+            color: var(--text-muted);
         }
 
-        .btn {
-            background-color: var(--bg);
-            color: var(--accent);
-            border: 1px solid var(--accent);
-            padding: 8px 16px;
-            border-radius: 20px;
+        .btn-rescan {
+            background-color: transparent;
+            color: var(--orange-primary);
+            border: 1px solid var(--orange-border);
+            padding: 6px 16px;
+            border-radius: 6px;
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
-        .btn:hover {
-            background-color: var(--accent);
+        .btn-rescan:hover {
+            background-color: var(--orange-primary);
             color: var(--bg);
-            box-shadow: 0 0 10px rgba(69, 243, 255, 0.4);
+            border-color: var(--orange-primary);
+            box-shadow: 0 0 12px rgba(255, 122, 89, 0.3);
         }
 
-        .btn:disabled {
+        .btn-rescan:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
 
         #filter-bar {
-            background-color: var(--card-bg);
-            border-bottom: 1px solid var(--card-border);
-            padding: 15px 40px;
+            max-width: 1400px;
+            margin: 0 auto 20px auto;
+            padding: 0 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .filter-row {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 12px;
             flex-wrap: wrap;
         }
 
-        .filter-section {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
         .filter-label {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            font-weight: 600;
-            color: var(--text-main);
+            font-weight: 700;
+            color: var(--text-muted);
+            width: 70px;
+            letter-spacing: 0.8px;
         }
 
         .chip-container {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .chip {
-            background: rgba(255, 255, 255, 0.05);
+            background: transparent;
             border: 1px solid var(--card-border);
             color: var(--text-main);
-            padding: 5px 12px;
-            border-radius: 15px;
+            padding: 4px 12px;
+            border-radius: 6px;
             font-size: 12px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
             user-select: none;
         }
 
-        .chip.active {
-            background: var(--accent);
-            border-color: var(--accent);
+        .chip:hover {
+            border-color: var(--text-muted);
+            color: var(--text-bright);
+        }
+
+        /* Model active state: outline orange, orange text */
+        .chip.model-chip.active {
+            border-color: var(--orange-primary);
+            color: var(--orange-primary);
+            background: var(--orange-bg-muted);
+        }
+
+        /* Special buttons like All/None and Range active states */
+        .chip.btn-all.active {
+            background: var(--orange-primary);
+            border-color: var(--orange-primary);
+            color: var(--bg);
+            font-weight: 600;
+        }
+
+        .chip.btn-none.active {
+            background: var(--text-muted);
+            border-color: var(--text-muted);
+            color: var(--bg);
+            font-weight: 600;
+        }
+
+        .chip.range-chip.active {
+            background: #d97706; /* Solid dark orange/brown active */
+            border-color: #d97706;
             color: var(--bg);
             font-weight: 600;
         }
@@ -325,49 +378,80 @@ HTML_PAGE = """<!DOCTYPE html>
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 30px;
+            padding: 0 30px 30px 30px;
         }
 
-        .stats-grid {
+        .stats-grid-top {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(5, 1fr);
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+        }
+
+        .stats-grid-bottom {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 35px;
+        }
+
+        @media (max-width: 1024px) {
+            .stats-grid-top {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .stats-grid-bottom {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid-top, .stats-grid-bottom {
+                grid-template-columns: 1fr;
+            }
         }
 
         .stat-card {
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 22px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--text-muted);
         }
 
         .stat-card .label {
-            font-size: 12px;
-            color: var(--text-main);
+            font-size: 11px;
+            color: var(--text-muted);
             text-transform: uppercase;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
         }
 
         .stat-card .value {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 700;
             color: var(--text-bright);
+            line-height: 1.1;
         }
 
         .stat-card .subtext {
             font-size: 11px;
             color: var(--text-muted);
-            margin-top: 6px;
+            margin-top: 8px;
+            font-weight: 500;
         }
 
         .charts-grid {
             display: grid;
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: 1.7fr 1.3fr;
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
 
         @media (max-width: 992px) {
@@ -379,36 +463,55 @@ HTML_PAGE = """<!DOCTYPE html>
         .chart-card {
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            min-height: 380px;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+            margin-bottom: 20px;
         }
 
         .chart-card h2 {
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 700;
             text-transform: uppercase;
-            color: var(--text-bright);
-            margin-bottom: 20px;
-            letter-spacing: 0.5px;
+            color: var(--text-main);
+            margin-bottom: 24px;
+            letter-spacing: 0.8px;
+        }
+
+        .chart-container-large {
+            position: relative;
+            height: 380px;
+            width: 100%;
+        }
+
+        .chart-container-medium {
+            position: relative;
+            height: 320px;
+            width: 100%;
         }
 
         .table-card {
             background-color: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             overflow-x: auto;
         }
 
         .table-card h2 {
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 700;
             text-transform: uppercase;
-            color: var(--text-bright);
+            color: var(--text-main);
             margin-bottom: 20px;
+            letter-spacing: 0.8px;
         }
 
         table {
@@ -418,103 +521,186 @@ HTML_PAGE = """<!DOCTYPE html>
         }
 
         th {
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            color: var(--text-main);
-            padding: 12px;
-            border-bottom: 2px solid var(--card-border);
-            font-weight: 600;
+            color: var(--text-muted);
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--card-border);
+            font-weight: 700;
+            letter-spacing: 0.8px;
         }
 
         td {
-            padding: 12px;
-            border-bottom: 1px solid var(--card-border);
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
             font-size: 13px;
+            color: var(--text-main);
+            vertical-align: middle;
         }
 
         tr:hover td {
-            background-color: rgba(255, 255, 255, 0.02);
+            background-color: rgba(255, 255, 255, 0.01);
+            color: var(--text-bright);
         }
 
+        /* Model Badge styling exactly matching screenshot */
         .model-badge {
-            background: rgba(69, 243, 255, 0.1);
-            color: var(--accent);
-            padding: 3px 8px;
+            display: inline-block;
+            padding: 3px 10px;
             border-radius: 4px;
             font-size: 11px;
             font-weight: 500;
+            border: 1px solid transparent;
+        }
+
+        .model-badge-opus {
+            background: rgba(255, 122, 89, 0.1);
+            border-color: rgba(255, 122, 89, 0.3);
+            color: #ff7a59;
+        }
+
+        .model-badge-sonnet {
+            background: rgba(79, 126, 247, 0.1);
+            border-color: rgba(79, 126, 247, 0.3);
+            color: #4f7ef7;
+        }
+
+        .model-badge-haiku {
+            background: rgba(54, 179, 126, 0.1);
+            border-color: rgba(54, 179, 126, 0.3);
+            color: #36b37e;
+        }
+
+        .model-badge-gemini-flash {
+            background: rgba(54, 179, 126, 0.1);
+            border-color: rgba(54, 179, 126, 0.2);
+            color: #36b37e;
+        }
+
+        .model-badge-gemini-pro {
+            background: rgba(255, 171, 0, 0.1);
+            border-color: rgba(255, 171, 0, 0.2);
+            color: #ffab00;
+        }
+
+        .model-badge-other {
+            background: rgba(154, 160, 184, 0.1);
+            border-color: rgba(154, 160, 184, 0.2);
+            color: #9aa0b8;
         }
 
         .cost-text {
-            color: var(--green);
-            font-weight: 600;
-            font-family: monospace;
+            color: #36b37e; /* Green cost text */
+            font-weight: 500;
+            font-family: 'Outfit', -apple-system, sans-serif;
         }
 
         .mono {
+            font-family: 'Outfit', -apple-system, sans-serif;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .session-id {
             font-family: monospace;
+            font-size: 12px;
+            color: var(--text-muted);
         }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>Antigravity Usage</h1>
+    <h1>Claude Code Kullanım Gösterge Paneli</h1>
     <div class="right-meta">
-        <span id="gen-time" style="font-size:12px; opacity:0.8;"></span>
-        <button id="rescan" class="btn" onclick="rescan()">Rescan</button>
+        <span id="gen-time">Son güncelleme: -</span>
+        <span>·</span>
+        <span id="countdown">Otomatik yenileme: 30sn</span>
+        <button id="rescan" class="btn-rescan" onclick="rescan()">Yeniden Tara</button>
     </div>
 </header>
 
 <div id="filter-bar">
-    <div class="filter-section">
+    <div class="filter-row">
         <div class="filter-label">Modeller:</div>
-        <div id="model-chips" class="chip-container"></div>
+        <div class="chip-container" id="model-chips">
+            <!-- Dynamic model chips + All/None -->
+        </div>
+    </div>
+    <div class="filter-row">
+        <div class="filter-label">Aralık:</div>
+        <div class="chip-container" id="range-chips">
+            <div class="chip range-chip" data-range="7d">7g</div>
+            <div class="chip range-chip active" data-range="30d">30g</div>
+            <div class="chip range-chip" data-range="90d">90g</div>
+            <div class="chip range-chip" data-range="All">Hepsi</div>
+        </div>
     </div>
 </div>
 
 <div class="container">
-    <!-- Stats Row -->
-    <div class="stats-grid">
+    <!-- Stats Row 1 (5 Cards) -->
+    <div class="stats-grid-top">
         <div class="stat-card">
-            <div class="label">Toplam Maliyet</div>
-            <div class="value cost-text" id="stat-cost">$0.00</div>
-            <div class="subtext">Tahmini API harcaması</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Toplam Turn</div>
-            <div class="value" id="stat-turns">0</div>
-            <div class="subtext">Soru-Cevap etkileşimi</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Input Token</div>
-            <div class="value mono" id="stat-input">0</div>
-            <div class="subtext">Sistem & Kullanıcı verisi</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Output Token</div>
-            <div class="value mono" id="stat-output">0</div>
-            <div class="subtext">Model cevap üretimi</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Toplam Oturum</div>
+            <div class="label">Oturumlar</div>
             <div class="value" id="stat-sessions">0</div>
-            <div class="subtext">Çalıştırılan sohbetler</div>
+            <div class="subtext range-subtext">son 30 gün</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Dönüşler</div>
+            <div class="value" id="stat-turns">0</div>
+            <div class="subtext range-subtext">son 30 gün</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Giriş Tokenleri</div>
+            <div class="value mono" id="stat-input">0</div>
+            <div class="subtext range-subtext">son 30 gün</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Çıkış Tokenleri</div>
+            <div class="value mono" id="stat-output">0</div>
+            <div class="subtext range-subtext">son 30 gün</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Önbellek Okuma</div>
+            <div class="value mono" id="stat-cache-read">0</div>
+            <div class="subtext">istek önbelleğinden</div>
         </div>
     </div>
 
-    <!-- Charts Row -->
+    <!-- Stats Row 2 (2 Cards, negative space after) -->
+    <div class="stats-grid-bottom">
+        <div class="stat-card">
+            <div class="label">Önbellek Yazma</div>
+            <div class="value mono" id="stat-cache-creation">0</div>
+            <div class="subtext">istek önbelleğine yazma</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Tahmini Maliyet</div>
+            <div class="value cost-text" id="stat-cost">$0.00</div>
+            <div class="subtext">API fiyatlandırması</div>
+        </div>
+    </div>
+
+    <!-- Daily Usage Chart (Full Width) -->
+    <div class="chart-card full-width">
+        <h2 id="daily-chart-title">Günlük Token Kullanımı — Son 30 Gün</h2>
+        <div class="chart-container-large">
+            <canvas id="chart-daily"></canvas>
+        </div>
+    </div>
+
+    <!-- Bottom Charts Row (Doughnut + Horizontal Bar) -->
     <div class="charts-grid">
         <div class="chart-card">
-            <h2>Günlük Harcama & Token Dağılımı</h2>
-            <div style="position: relative; height: 320px;">
-                <canvas id="chart-daily"></canvas>
+            <h2>Modellere Göre Dağılım</h2>
+            <div class="chart-container-medium">
+                <canvas id="chart-pie"></canvas>
             </div>
         </div>
         <div class="chart-card">
-            <h2>Modellere Göre Dağılım (Maliyet)</h2>
-            <div style="position: relative; height: 320px;">
-                <canvas id="chart-pie"></canvas>
+            <h2>Token Kullanımına Göre En İyi Projeler</h2>
+            <div class="chart-container-medium">
+                <canvas id="chart-projects"></canvas>
             </div>
         </div>
     </div>
@@ -525,19 +711,19 @@ HTML_PAGE = """<!DOCTYPE html>
         <table>
             <thead>
                 <tr>
-                    <th>Konuşma / ID</th>
+                    <th>Oturum</th>
                     <th>Proje</th>
-                    <th>Model</th>
-                    <th>Dönüş sayısı</th>
-                    <th>İnput</th>
-                    <th>Output</th>
+                    <th>Son Aktif</th>
                     <th>Süre</th>
-                    <th>Tarih</th>
-                    <th>Maliyet</th>
+                    <th>Model</th>
+                    <th>Dönüş</th>
+                    <th>Giriş</th>
+                    <th>Çıkış</th>
+                    <th>Tahmini Maliyet</th>
                 </tr>
             </thead>
             <tbody id="sessions-table-body">
-                <!-- Data populated dynamically -->
+                <!-- Dynamic rows -->
             </tbody>
         </table>
     </div>
@@ -545,9 +731,73 @@ HTML_PAGE = """<!DOCTYPE html>
 
 <script>
     let rawData = null;
-    let selectedModel = "Toplam"; // default selection is "Toplam"
+    let selectedModels = new Set();
+    let selectedRange = "30d";
     let chartDaily = null;
     let chartPie = null;
+    let chartProjects = null;
+    let refreshTimer = null;
+    let secondsLeft = 30;
+
+    // Helper to format large numbers to K, M, B
+    function formatNumber(num) {
+        if (num >= 1e9) return (num / 1e9).toFixed(2).replace(/\.00$/, '') + 'B';
+        if (num >= 1e6) return (num / 1e6).toFixed(2).replace(/\.00$/, '') + 'M';
+        if (num >= 1e3) return (num / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+        return num.toLocaleString();
+    }
+
+    // Helper to format cost beautifully
+    function formatCost(cost) {
+        if (cost === 0) return '$0.0000';
+        if (cost < 1) return '$' + cost.toFixed(4);
+        return '$' + cost.toFixed(2);
+    }
+
+    // Get model CSS badge class
+    function getModelBadgeClass(model) {
+        const m = model.toLowerCase();
+        if (m.includes('opus')) return 'model-badge-opus';
+        if (m.includes('sonnet')) return 'model-badge-sonnet';
+        if (m.includes('haiku')) return 'model-badge-haiku';
+        if (m.includes('flash')) return 'model-badge-gemini-flash';
+        if (m.includes('pro')) return 'model-badge-gemini-pro';
+        return 'model-badge-other';
+    }
+
+    // Clean model name for display
+    function cleanModelName(model) {
+        const m = model.toLowerCase();
+        if (m.includes('opus')) return 'claude-opus-4-6';
+        if (m.includes('sonnet')) return 'claude-sonnet-4-6';
+        if (m.includes('haiku')) return 'claude-haiku-4-5';
+        if (m.includes('flash')) {
+            if (m.includes('high')) return 'gemini-3.5-flash-high';
+            if (m.includes('low')) return 'gemini-3.5-flash-low';
+            return 'gemini-3.5-flash';
+        }
+        if (m.includes('pro')) {
+            if (m.includes('high')) return 'gemini-3.1-pro-high';
+            return 'gemini-3.1-pro';
+        }
+        return model;
+    }
+
+    // Timer setup
+    function resetTimer() {
+        secondsLeft = 30;
+        document.getElementById('countdown').innerText = `Otomatik yenileme: ${secondsLeft}sn`;
+        if (refreshTimer) clearInterval(refreshTimer);
+        refreshTimer = setInterval(() => {
+            secondsLeft--;
+            if (secondsLeft <= 0) {
+                document.getElementById('countdown').innerText = "Yenileniyor...";
+                loadData();
+            } else {
+                document.getElementById('countdown').innerText = `Otomatik yenileme: ${secondsLeft}sn`;
+            }
+        }, 1000);
+    }
 
     async function loadData() {
         try {
@@ -561,67 +811,135 @@ HTML_PAGE = """<!DOCTYPE html>
 
             document.getElementById('gen-time').innerText = "Son güncelleme: " + rawData.generated_at;
 
-            renderModelFilters();
+            // Initialize selected models if not set
+            if (selectedModels.size === 0) {
+                rawData.all_models.forEach(model => selectedModels.add(model));
+            }
+
+            renderFilters();
             updateDashboard();
+            resetTimer();
         } catch (e) {
             console.error(e);
         }
     }
 
-    function renderModelFilters() {
-        const container = document.getElementById('model-chips');
-        container.innerHTML = '';
+    function renderFilters() {
+        // Render Model Chips
+        const modelContainer = document.getElementById('model-chips');
+        modelContainer.innerHTML = '';
         
-        // 1. Add "Toplam" chip first
-        const totalChip = document.createElement('div');
-        totalChip.className = 'chip' + (selectedModel === 'Toplam' ? ' active' : '');
-        totalChip.innerText = 'Toplam';
-        totalChip.onclick = () => {
-            selectedModel = 'Toplam';
-            renderModelFilters();
+        // Add All & None chips first
+        const allChip = document.createElement('div');
+        allChip.className = 'chip btn-all' + (selectedModels.size === rawData.all_models.length ? ' active' : '');
+        allChip.innerText = 'All';
+        allChip.onclick = () => {
+            rawData.all_models.forEach(m => selectedModels.add(m));
+            renderFilters();
             updateDashboard();
         };
-        container.appendChild(totalChip);
+        modelContainer.appendChild(allChip);
 
-        // 2. Add standard model chips
+        const noneChip = document.createElement('div');
+        noneChip.className = 'chip btn-none' + (selectedModels.size === 0 ? ' active' : '');
+        noneChip.innerText = 'None';
+        noneChip.onclick = () => {
+            selectedModels.clear();
+            renderFilters();
+            updateDashboard();
+        };
+        modelContainer.appendChild(noneChip);
+
+        // Add standard model chips
         rawData.all_models.forEach(model => {
             const chip = document.createElement('div');
-            chip.className = 'chip' + (selectedModel === model ? ' active' : '');
-            chip.innerText = model;
+            const cleanName = cleanModelName(model);
+            chip.className = 'chip model-chip' + (selectedModels.has(model) ? ' active' : '');
+            chip.innerText = cleanName;
             chip.onclick = () => {
-                selectedModel = model;
-                renderModelFilters();
+                if (selectedModels.has(model)) {
+                    selectedModels.delete(model);
+                } else {
+                    selectedModels.add(model);
+                }
+                renderFilters();
                 updateDashboard();
             };
-            container.appendChild(chip);
+            modelContainer.appendChild(chip);
+        });
+
+        // Setup Range Chip handlers once
+        const rangeChips = document.querySelectorAll('.range-chip');
+        rangeChips.forEach(chip => {
+            chip.onclick = function() {
+                rangeChips.forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                selectedRange = this.getAttribute('data-range');
+                updateDashboard();
+            };
         });
     }
 
     function updateDashboard() {
-        // Filter session logs based on selectedModel
-        const filteredSessions = rawData.sessions.filter(s => {
-            if (selectedModel === "Toplam") return true;
-            return s.model === selectedModel;
+        // Calculate range cutoff based on the maximum date in the logs
+        const maxDateStr = rawData.daily.reduce((max, d) => d.day > max ? d.day : max, '1970-01-01');
+        let cutoffDate = null;
+        if (selectedRange !== 'All') {
+            const maxDate = new Date(maxDateStr + 'T00:00:00');
+            const days = parseInt(selectedRange);
+            cutoffDate = new Date(maxDate);
+            cutoffDate.setDate(maxDate.getDate() - days);
+        }
+
+        // Update subtexts
+        const rangeText = selectedRange === 'All' ? 'tüm zamanlar' : `son ${parseInt(selectedRange)} gün`;
+        document.querySelectorAll('.range-subtext').forEach(el => {
+            el.innerText = rangeText;
         });
-        
+
+        // Update Daily Chart title
+        const dailyChartTitle = selectedRange === 'All' 
+            ? 'Günlük Token Kullanımı — Tüm Zamanlar' 
+            : `Günlük Token Kullanımı — Son ${parseInt(selectedRange)} Gün`;
+        document.getElementById('daily-chart-title').innerText = dailyChartTitle;
+
+        // Filter sessions by selected models and date range
+        const filteredSessions = rawData.sessions.filter(s => {
+            // Model filter
+            if (!selectedModels.has(s.model)) return false;
+            // Date filter
+            if (cutoffDate) {
+                const sDate = new Date(s.last_active.substring(0, 10) + 'T00:00:00');
+                if (sDate < cutoffDate) return false;
+            }
+            return true;
+        });
+
+        // Calculate card metrics from filtered sessions
         let totalCost = 0;
         let totalTurns = 0;
         let totalInput = 0;
         let totalOutput = 0;
+        let totalCacheRead = 0;
+        let totalCacheCreation = 0;
 
         filteredSessions.forEach(s => {
             totalCost += s.cost;
             totalTurns += s.turns;
             totalInput += s.input;
             totalOutput += s.output;
+            totalCacheRead += s.cache_read;
+            totalCacheCreation += s.cache_creation;
         });
 
         // Set top widgets
-        document.getElementById('stat-cost').innerText = "$" + totalCost.toFixed(4);
-        document.getElementById('stat-turns').innerText = totalTurns.toLocaleString();
-        document.getElementById('stat-input').innerText = totalInput.toLocaleString();
-        document.getElementById('stat-output').innerText = totalOutput.toLocaleString();
         document.getElementById('stat-sessions').innerText = filteredSessions.length.toLocaleString();
+        document.getElementById('stat-turns').innerText = formatNumber(totalTurns);
+        document.getElementById('stat-input').innerText = formatNumber(totalInput);
+        document.getElementById('stat-output').innerText = formatNumber(totalOutput);
+        document.getElementById('stat-cache-read').innerText = formatNumber(totalCacheRead);
+        document.getElementById('stat-cache-creation').innerText = formatNumber(totalCacheCreation);
+        document.getElementById('stat-cost').innerText = formatCost(totalCost);
 
         // Render sessions table
         const tbody = document.getElementById('sessions-table-body');
@@ -630,65 +948,81 @@ HTML_PAGE = """<!DOCTYPE html>
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div style="font-weight: 600; color: var(--text-bright);">${s.title}</div>
-                    <div style="font-size: 11px; opacity: 0.6;" class="mono">${s.session_id}</div>
+                    <div style="font-weight: 600; color: var(--text-bright); margin-bottom: 2px;">${s.title}</div>
+                    <div class="session-id">${s.session_id}</div>
                 </td>
-                <td>${s.project}</td>
-                <td><span class="model-badge">${s.model}</span></td>
-                <td>${s.turns}</td>
-                <td class="mono">${s.input.toLocaleString()}</td>
-                <td class="mono">${s.output.toLocaleString()}</td>
+                <td style="font-weight: 500;">${s.project}</td>
+                <td class="mono">${s.last_active}</td>
                 <td>${s.duration_min} dk</td>
-                <td>${s.last_active}</td>
-                <td class="cost-text">$${s.cost.toFixed(4)}</td>
+                <td><span class="model-badge ${getModelBadgeClass(s.model)}">${cleanModelName(s.model)}</span></td>
+                <td>${s.turns}</td>
+                <td class="mono">${formatNumber(s.input)}</td>
+                <td class="mono">${formatNumber(s.output)}</td>
+                <td class="cost-text">${formatCost(s.cost)}</td>
             `;
             tbody.appendChild(tr);
         });
 
-        renderCharts();
+        renderCharts(cutoffDate);
     }
 
-    function renderCharts() {
-        // Daily Chart Data
+    function renderCharts(cutoffDate) {
+        // 1. Filter and Aggregate Daily Usage
         const dailyAgg = {};
         rawData.daily.forEach(d => {
-            if (selectedModel !== "Toplam" && d.model !== selectedModel) return;
+            if (!selectedModels.has(d.model)) return;
+            if (cutoffDate) {
+                const dDate = new Date(d.day + 'T00:00:00');
+                if (dDate < cutoffDate) return;
+            }
             if (!dailyAgg[d.day]) {
-                dailyAgg[d.day] = { input: 0, output: 0, cost: 0 };
+                dailyAgg[d.day] = { input: 0, output: 0, cache_read: 0, cache_creation: 0 };
             }
             dailyAgg[d.day].input += d.input;
             dailyAgg[d.day].output += d.output;
-            dailyAgg[d.day].cost += d.cost;
+            dailyAgg[d.day].cache_read += d.cache_read;
+            dailyAgg[d.day].cache_creation += d.cache_creation;
         });
 
         const dailyLabels = Object.keys(dailyAgg).sort();
-        const dailyCostData = dailyLabels.map(l => dailyAgg[l].cost);
-        const dailyTokenData = dailyLabels.map(l => dailyAgg[l].input + dailyAgg[l].output);
+        const dailyInputData = dailyLabels.map(l => dailyAgg[l].input);
+        const dailyOutputData = dailyLabels.map(l => dailyAgg[l].output);
+        const dailyCacheReadData = dailyLabels.map(l => dailyAgg[l].cache_read);
+        const dailyCacheCreationData = dailyLabels.map(l => dailyAgg[l].cache_creation);
 
         if (chartDaily) chartDaily.destroy();
         chartDaily = new Chart(document.getElementById('chart-daily'), {
-            type: 'line',
+            type: 'bar',
             data: {
                 labels: dailyLabels,
                 datasets: [
                     {
-                        label: 'Tahmini Maliyet ($)',
-                        data: dailyCostData,
-                        borderColor: '#2ecc71',
-                        backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                        borderWidth: 2,
-                        yAxisID: 'y-cost',
-                        fill: true,
-                        tension: 0.3
+                        label: 'Giriş (Input)',
+                        data: dailyInputData,
+                        backgroundColor: '#4f7ef7',
+                        borderWidth: 0,
+                        categoryPercentage: 0.8
                     },
                     {
-                        label: 'Toplam Token',
-                        data: dailyTokenData,
-                        borderColor: '#0080ff',
-                        backgroundColor: 'rgba(0, 128, 255, 0.05)',
-                        borderWidth: 2,
-                        yAxisID: 'y-tokens',
-                        tension: 0.3
+                        label: 'Çıkış (Output)',
+                        data: dailyOutputData,
+                        backgroundColor: '#a27dfa',
+                        borderWidth: 0,
+                        categoryPercentage: 0.8
+                    },
+                    {
+                        label: 'Önbellek Okuma',
+                        data: dailyCacheReadData,
+                        backgroundColor: '#36b37e',
+                        borderWidth: 0,
+                        categoryPercentage: 0.8
+                    },
+                    {
+                        label: 'Önbellek Yazma',
+                        data: dailyCacheCreationData,
+                        backgroundColor: '#ffab00',
+                        borderWidth: 0,
+                        categoryPercentage: 0.8
                     }
                 ]
             },
@@ -696,20 +1030,44 @@ HTML_PAGE = """<!DOCTYPE html>
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#c5c6c7' } },
-                    'y-cost': { position: 'left', grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#2ecc71' } },
-                    'y-tokens': { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#0080ff' } }
+                    x: {
+                        stacked: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                        ticks: { color: '#9aa0b8', font: { family: 'Outfit', size: 11 } }
+                    },
+                    y: {
+                        stacked: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                        ticks: {
+                            color: '#9aa0b8',
+                            font: { family: 'Outfit', size: 11 },
+                            callback: value => formatNumber(value)
+                        }
+                    }
                 },
                 plugins: {
-                    legend: { labels: { color: '#c5c6c7' } }
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#9aa0b8',
+                            font: { family: 'Outfit', size: 12 },
+                            boxWidth: 10,
+                            padding: 15
+                        }
+                    }
                 }
             }
         });
 
-        // Model Distribution Doughnut Chart (shows full overview, unaffected by single model selection)
+        // 2. Aggregate Model Cost Distribution for Doughnut Chart (Only range filtered, not model filtered)
         const modelAgg = {};
         rawData.sessions.forEach(s => {
-            modelAgg[s.model] = (modelAgg[s.model] || 0) + s.cost;
+            if (cutoffDate) {
+                const sDate = new Date(s.last_active.substring(0, 10) + 'T00:00:00');
+                if (sDate < cutoffDate) return;
+            }
+            const cleanName = cleanModelName(s.model);
+            modelAgg[cleanName] = (modelAgg[cleanName] || 0) + s.cost;
         });
 
         const pieLabels = Object.keys(modelAgg);
@@ -723,17 +1081,113 @@ HTML_PAGE = """<!DOCTYPE html>
                 datasets: [{
                     data: pieData,
                     backgroundColor: [
-                        '#45f3ff', '#0080ff', '#2ecc71', '#e74c3c', '#f1c40f', '#9b59b6', '#34495e'
+                        '#ff7a59', '#4f7ef7', '#36b37e', '#ffab00', '#a27dfa', '#e74c3c', '#9b59b6', '#34495e'
                     ],
-                    borderWidth: 1,
-                    borderColor: '#1f2833'
+                    borderWidth: 2,
+                    borderColor: '#131520'
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#c5c6c7', boxWidth: 12 } }
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#9aa0b8',
+                            font: { family: 'Outfit', size: 11 },
+                            boxWidth: 10,
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.label}: ${formatCost(context.raw)}`;
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+
+        // 3. Aggregate Top Projects for Horizontal Stacked Bar Chart (Range and Model filtered)
+        const projectAgg = {};
+        rawData.sessions.forEach(s => {
+            if (!selectedModels.has(s.model)) return;
+            if (cutoffDate) {
+                const sDate = new Date(s.last_active.substring(0, 10) + 'T00:00:00');
+                if (sDate < cutoffDate) return;
+            }
+            const projName = s.project || 'unknown';
+            if (!projectAgg[projName]) {
+                projectAgg[projName] = { input: 0, output: 0, total: 0 };
+            }
+            projectAgg[projName].input += s.input;
+            projectAgg[projName].output += s.output;
+            projectAgg[projName].total += s.input + s.output;
+        });
+
+        // Sort by total tokens descending and select top 10 projects
+        const sortedProjects = Object.entries(projectAgg)
+            .map(([name, data]) => ({ name, ...data }))
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 10);
+
+        const projectLabels = sortedProjects.map(p => p.name);
+        const projectInputData = sortedProjects.map(p => p.input);
+        const projectOutputData = sortedProjects.map(p => p.output);
+
+        if (chartProjects) chartProjects.destroy();
+        chartProjects = new Chart(document.getElementById('chart-projects'), {
+            type: 'bar',
+            data: {
+                labels: projectLabels,
+                datasets: [
+                    {
+                        label: 'Giriş (Input)',
+                        data: projectInputData,
+                        backgroundColor: '#4f7ef7',
+                        borderWidth: 0
+                    },
+                    {
+                        label: 'Çıkış (Output)',
+                        data: projectOutputData,
+                        backgroundColor: '#a27dfa',
+                        borderWidth: 0
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y', // Makes the chart horizontal
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                        ticks: {
+                            color: '#9aa0b8',
+                            font: { family: 'Outfit', size: 10 },
+                            callback: value => formatNumber(value)
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        grid: { display: false },
+                        ticks: { color: '#9aa0b8', font: { family: 'Outfit', size: 10 } }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#9aa0b8',
+                            font: { family: 'Outfit', size: 11 },
+                            boxWidth: 10
+                        }
+                    }
                 }
             }
         });
@@ -741,7 +1195,7 @@ HTML_PAGE = """<!DOCTYPE html>
 
     async function rescan() {
         const btn = document.getElementById('rescan');
-        btn.innerText = 'Scanning...';
+        btn.innerText = 'Taranıyor...';
         btn.disabled = true;
         try {
             await fetch('/api/scan');
@@ -749,7 +1203,7 @@ HTML_PAGE = """<!DOCTYPE html>
         } catch(e) {
             console.error(e);
         } finally {
-            btn.innerText = 'Rescan';
+            btn.innerText = 'Yeniden Tara';
             btn.disabled = false;
         }
     }
@@ -758,8 +1212,7 @@ HTML_PAGE = """<!DOCTYPE html>
     loadData();
 </script>
 </body>
-</html>
-"""
+</html>"""
 
 class DashboardHTTPRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
