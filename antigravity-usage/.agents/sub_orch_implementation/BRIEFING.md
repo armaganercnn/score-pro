@@ -26,10 +26,10 @@ Implement all backend and frontend changes requested in ORIGINAL_REQUEST.md (R1,
 4. **Succession**: Self-succeed when spawn count >= 16.
 - **Work items**:
   - Milestone 1: Backend Logic [done]
-  - Milestone 2: Frontend & Date Range [in-progress]
-  - Milestone 3: E2E Integration [pending]
+  - Milestone 2: Frontend & Date Range [done]
+  - Milestone 3: E2E Integration [pending: waiting for TEST_READY.md]
 - **Current phase**: 2 (Direct Iteration)
-- **Current focus**: Milestone 2 (Frontend & Date Range)
+- **Current focus**: Milestone 3 (E2E Integration & Verification)
 
 ## 🔒 Key Constraints
 - NEVER write, modify, or create source code files directly.
@@ -55,17 +55,18 @@ Implement all backend and frontend changes requested in ORIGINAL_REQUEST.md (R1,
 | explorer_frontend_r3_r4_1 | teamwork_preview_explorer | Explore R3 & R4 | completed | 98edbca0-f01b-4712-9d67-352b81589dc4 |
 | explorer_frontend_r3_r4_2 | teamwork_preview_explorer | Explore R3 & R4 | completed | 936d9c65-030c-48fb-af25-b2d00d7972ae |
 | explorer_frontend_r3_r4_3 | teamwork_preview_explorer | Explore R3 & R4 | completed | 4a7be8b0-9645-4c4c-9801-d2ed007b3cb8 |
-| worker_frontend_r3_r4 | teamwork_preview_worker | Implement R3 & R4 | pending | bf847fec-6e09-4f70-af88-e3694af61e6e |
+| worker_frontend_r3_r4 | teamwork_preview_worker | Implement R3 & R4 | completed | bf847fec-6e09-4f70-af88-e3694af61e6e |
 
 ## Succession Status
 - Succession required: no
 - Spawn count: 8 / 16
-- Pending subagents: bf847fec-6e09-4f70-af88-e3694af61e6e
+- Pending subagents: none
 - Predecessor: none
 - Successor: not yet spawned
 
 ## Active Timers
 - Heartbeat cron: task-15
+- Poll TEST_READY cron: task-189
 - Safety timer: none
 
 ## Artifact Index

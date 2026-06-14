@@ -772,7 +772,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         }
         if (m.includes('pro')) {
             if (m.includes('high')) return 'gemini-3.1-pro-high';
-            return 'gemini-3.1-pro';
+            return 'gemini-3.1-pro-low';
         }
         return model;
     }
