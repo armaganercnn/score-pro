@@ -996,7 +996,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             const maxDate = new Date(maxDateStr + 'T00:00:00');
             const days = parseInt(selectedRange);
             cutoffDate = new Date(maxDate);
-            cutoffDate.setDate(maxDate.getDate() - (days + 1));
+            cutoffDate.setDate(maxDate.getDate() - days);
         }
 
         // Update subtexts
@@ -1092,7 +1092,24 @@ HTML_PAGE = r"""<!DOCTYPE html>
             dailyAgg[d.day].cache_creation += d.cache_creation;
         });
 
-        const dailyLabels = Object.keys(dailyAgg).sort();
+        const maxDateStr = rawData.daily.reduce((max, d) => d.day > max ? d.day : max, '1970-01-01');
+        const dailyLabels = [];
+        let start = cutoffDate;
+        if (!start) {
+            const minDateStr = rawData.daily.reduce((min, d) => d.day < min ? d.day : min, '9999-12-31');
+            start = new Date(minDateStr + 'T00:00:00');
+        }
+        const end = new Date(maxDateStr + 'T00:00:00');
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const dayStr = `${yyyy}-${mm}-${dd}`;
+            dailyLabels.push(dayStr);
+            if (!dailyAgg[dayStr]) {
+                dailyAgg[dayStr] = { input: 0, output: 0, cache_read: 0, cache_creation: 0 };
+            }
+        }
         const dailyInputData = dailyLabels.map(l => dailyAgg[l].input);
         const dailyOutputData = dailyLabels.map(l => dailyAgg[l].output);
         const dailyCacheReadData = dailyLabels.map(l => dailyAgg[l].cache_read);
