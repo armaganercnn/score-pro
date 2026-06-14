@@ -84,9 +84,17 @@ def parse_settings_change(content):
     if not content:
         return None
     # Look for: changed setting `Model Selection` from X to Y
-    match = re.search(r"changed setting\s+`Model Selection`\s+from\s+.*?\s+to\s+([^`.\n]+)", content)
+    match = re.search(r"changed setting\s+`Model Selection`\s+from\s+.*?\s+to\s+([^`\n]+)", content)
     if match:
-        return match.group(1).strip()
+        val = match.group(1).strip()
+        # Clean up trailing sentences (e.g. ". No need to comment...")
+        val = re.split(r"\.\s+[A-Z]", val)[0]
+        if val.endswith("."):
+            val = val[:-1]
+        val = val.strip()
+        if len(val) < 4 or val.lower() in ("x", "y", "none"):
+            return None
+        return val
     return None
 
 def extract_paths_from_args(args):
