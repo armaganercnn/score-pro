@@ -1010,7 +1010,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             const maxDate = new Date(maxDateStr + 'T00:00:00');
             const days = parseInt(selectedRange);
             cutoffDate = new Date(maxDate);
-            cutoffDate.setDate(maxDate.getDate() - days);
+            cutoffDate.setDate(maxDate.getDate() - (days + 1));
         }
 
         // Update subtexts
