@@ -20,11 +20,11 @@ Son Oturumlar tablosunu yatayda tam genişliğe (full-width) yaymak ve girdi, ç
 - **Work items**:
   1. Decompose follow-up requirements and design plan [done]
   2. Explore Sessions Table layout and data fields [done]
-  3. Implement table full-width CSS and separate columns (Input, Cache Read, Cache Write, Output) [in-progress]
-  4. Implement column header tooltip and info icons [in-progress]
-  5. Verify correctness in parent/child rows and validate using E2E tests [pending]
-- **Current phase**: 2
-- **Current focus**: Implementing layout, styling, columns, and tooltips in dashboard.py.
+  3. Implement table full-width CSS and separate columns (Input, Cache Read, Cache Write, Output) [done]
+  4. Implement column header tooltip and info icons [done]
+  5. Verify correctness in parent/child rows and validate using E2E tests [in-progress]
+- **Current phase**: 3
+- **Current focus**: Running verification (Reviewers, Challengers, Forensic Auditor) for Sessions Table changes.
 
 ## 🔒 Key Constraints
 - Never write or modify source code files directly.
@@ -44,12 +44,17 @@ Son Oturumlar tablosunu yatayda tam genişliğe (full-width) yaymak ve girdi, ç
 | Agent | Type | Work Item | Status | Conv ID |
 |-------|------|-----------|--------|---------|
 | Explorer | teamwork_preview_explorer | Explore Sessions Table layout and data fields | completed | 09fc146c-bb7d-4f63-abaa-da1f840e8c27 |
-| Worker | teamwork_preview_worker | Implement dashboard table updates | in-progress | 4183ecc6-c543-4095-a0cb-0672cacc949f |
+| Worker | teamwork_preview_worker | Implement dashboard table updates | completed | 4183ecc6-c543-4095-a0cb-0672cacc949f |
+| Reviewer 1 | teamwork_preview_reviewer | Review CSS, HTML columns and JavaScript rendering | pending | 2a4b0c7f-6831-490f-b080-961fa2457ecd |
+| Reviewer 2 | teamwork_preview_reviewer | Review CSS, HTML columns and JavaScript rendering | pending | 23c7db54-06a7-4887-8720-8b9f46bf3d56 |
+| Challenger 1 | teamwork_preview_challenger | Challenge Sessions Table correctness and robustness | pending | bef5105f-b6e7-40ed-995f-c70bbf65e540 |
+| Challenger 2 | teamwork_preview_challenger | Challenge Sessions Table correctness and robustness | pending | 0b1b6e49-efb3-4bd3-89f5-786ad24266b6 |
+| Forensic Auditor | teamwork_preview_auditor | Run forensic checks on dashboard table update | pending | 309db5c4-338b-4c68-8c2a-fc44c1af0350 |
 
 ## Succession Status
 - Succession required: no
-- Spawn count: 2 / 16
-- Pending subagents: 4183ecc6-c543-4095-a0cb-0672cacc949f
+- Spawn count: 7 / 16
+- Pending subagents: 2a4b0c7f-6831-490f-b080-961fa2457ecd, 23c7db54-06a7-4887-8720-8b9f46bf3d56, bef5105f-b6e7-40ed-995f-c70bbf65e540, 0b1b6e49-efb3-4bd3-89f5-786ad24266b6, 309db5c4-338b-4c68-8c2a-fc44c1af0350
 - Predecessor: none
 - Successor: not yet spawned
 
