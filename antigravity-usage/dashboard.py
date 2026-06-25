@@ -833,7 +833,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
                         <th>Ort. Giriş</th>
                         <th>Ort. Çıkış</th>
                         <th>Önbellek Verimliliği<span class="info-icon">i<span class="tooltip-text">Girdi tokenlerinin yüzde kaçının önbellekten (ücretsiz/indirimli) okunduğunu gösterir.</span></span></th>
-                        <th>Ort. Dönüş Maliyeti</th>
                         <th>Toplam Maliyet</th>
                     </tr>
                 </thead>
@@ -851,7 +850,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
                         <th>Oturum</th>
                         <th>Dönüş</th>
                         <th>Önbellek Verimliliği<span class="info-icon">i<span class="tooltip-text">Girdi tokenlerinin yüzde kaçının önbellekten (ücretsiz/indirimli) okunduğunu gösterir.</span></span></th>
-                        <th>Ort. Dönüş Maliyeti</th>
                         <th>Toplam Maliyet</th>
                     </tr>
                 </thead>
@@ -1394,7 +1392,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 : '0%';
             const avgInput = data.turns > 0 ? formatNumber(Math.round(data.input / data.turns)) : '0';
             const avgOutput = data.turns > 0 ? formatNumber(Math.round(data.output / data.turns)) : '0';
-            const avgCost = data.turns > 0 ? formatCost(data.cost / data.turns) : '$0.0000';
             
             tr.innerHTML = `
                 <td><span class="model-badge ${getModelBadgeClass(model)}">${cleanModelName(model)}</span></td>
@@ -1402,7 +1399,6 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 <td class="mono">${avgInput}</td>
                 <td class="mono">${avgOutput}</td>
                 <td class="mono" style="color: var(--color-cache-read); font-weight: 500;">${cacheHitRate}</td>
-                <td class="cost-text">${avgCost}</td>
                 <td class="cost-text" style="font-weight: 600;">${formatCost(data.cost)}</td>
             `;
             benchmarkModelsBody.appendChild(tr);
@@ -1430,14 +1426,12 @@ HTML_PAGE = r"""<!DOCTYPE html>
             const cacheHitRate = data.input + data.cache_read > 0 
                 ? ((data.cache_read / (data.input + data.cache_read)) * 100).toFixed(1) + '%' 
                 : '0%';
-            const avgCost = data.turns > 0 ? formatCost(data.cost / data.turns) : '$0.0000';
             
             tr.innerHTML = `
                 <td style="font-weight: 600; color: var(--text-bright);">${project}</td>
                 <td>${data.sessions}</td>
                 <td>${data.turns}</td>
                 <td class="mono" style="color: var(--color-cache-read); font-weight: 500;">${cacheHitRate}</td>
-                <td class="cost-text">${avgCost}</td>
                 <td class="cost-text" style="font-weight: 600;">${formatCost(data.cost)}</td>
             `;
             benchmarkProjectsBody.appendChild(tr);
