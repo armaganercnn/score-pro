@@ -517,7 +517,12 @@ HTML_PAGE = r"""<!DOCTYPE html>
             border-radius: 8px;
             padding: 16px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            overflow: visible;
+        }
+
+        .table-responsive {
             overflow-x: auto;
+            width: 100%;
         }
 
         .table-card h2 {
@@ -730,6 +735,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             border: 1px solid var(--card-border);
             white-space: normal;
             pointer-events: none;
+            text-transform: none;
         }
         .info-icon .tooltip-text::after {
             content: "";
@@ -740,6 +746,15 @@ HTML_PAGE = r"""<!DOCTYPE html>
             border-width: 5px;
             border-style: solid;
             border-color: var(--card-border) transparent transparent transparent;
+        }
+        th .info-icon .tooltip-text {
+            bottom: auto;
+            top: 130%;
+        }
+        th .info-icon .tooltip-text::after {
+            top: auto;
+            bottom: 100%;
+            border-color: transparent transparent var(--card-border) transparent;
         }
         .info-icon:hover .tooltip-text {
             visibility: visible;
@@ -868,24 +883,26 @@ HTML_PAGE = r"""<!DOCTYPE html>
     <!-- Sessions Table -->
     <div class="table-card">
         <h2>Son Oturumlar (Sessions)<span class="info-icon">i<span class="tooltip-text">Yakın zamanda gerçekleştirilen geliştirme oturumlarının listesi ve detayları.</span></span></h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Oturum<span class="info-icon">i<span class="tooltip-text">Sohbetin başlığı ve benzersiz kimliği (ID).</span></span></th>
-                    <th>Proje<span class="info-icon">i<span class="tooltip-text">Sohbet esnasında çalışılan ve tespit edilen proje dizini.</span></span></th>
-                    <th>Son Aktif<span class="info-icon">i<span class="tooltip-text">Sohbetin en son güncellendiği tarih ve saat.</span></span></th>
-                    <th>Süre<span class="info-icon">i<span class="tooltip-text">Sohbetin ilk mesajı ile son mesajı arasında geçen toplam süre.</span></span></th>
-                    <th>Model<span class="info-icon">i<span class="tooltip-text">Sohbet içerisinde kullanılan LLM modeli.</span></span></th>
-                    <th>Dönüş<span class="info-icon">i<span class="tooltip-text">Sohbet içerisindeki toplam asistan yanıtı sayısı.</span></span></th>
-                    <th>Giriş<span class="info-icon">i<span class="tooltip-text">Bu sohbette harcanan toplam girdi tokenleri.</span></span></th>
-                    <th>Çıkış<span class="info-icon">i<span class="tooltip-text">Bu sohbette üretilen toplam çıktı tokenleri.</span></span></th>
-                    <th>Tahmini Maliyet<span class="info-icon">i<span class="tooltip-text">Sohbetin girdileri ve çıktıları doğrultusunda tahmini toplam maliyeti.</span></span></th>
-                </tr>
-            </thead>
-            <tbody id="sessions-table-body">
-                <!-- Dynamic rows -->
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Oturum<span class="info-icon">i<span class="tooltip-text">Sohbetin başlığı ve benzersiz kimliği (ID).</span></span></th>
+                        <th>Proje<span class="info-icon">i<span class="tooltip-text">Sohbet esnasında çalışılan ve tespit edilen proje dizini.</span></span></th>
+                        <th>Son Aktif<span class="info-icon">i<span class="tooltip-text">Sohbetin en son güncellendiği tarih ve saat.</span></span></th>
+                        <th>Süre<span class="info-icon">i<span class="tooltip-text">Sohbetin ilk mesajı ile son mesajı arasında geçen toplam süre.</span></span></th>
+                        <th>Model<span class="info-icon">i<span class="tooltip-text">Sohbet içerisinde kullanılan LLM modeli.</span></span></th>
+                        <th>Dönüş<span class="info-icon">i<span class="tooltip-text">Sohbet içerisindeki toplam asistan yanıtı sayısı.</span></span></th>
+                        <th>Giriş<span class="info-icon">i<span class="tooltip-text">Bu sohbette harcanan toplam girdi tokenleri.</span></span></th>
+                        <th>Çıkış<span class="info-icon">i<span class="tooltip-text">Bu sohbette üretilen toplam çıktı tokenleri.</span></span></th>
+                        <th>Tahmini Maliyet<span class="info-icon">i<span class="tooltip-text">Sohbetin girdileri ve çıktıları doğrultusunda tahmini toplam maliyeti.</span></span></th>
+                    </tr>
+                </thead>
+                <tbody id="sessions-table-body">
+                    <!-- Dynamic rows -->
+                </tbody>
+            </table>
+        </div>
         <div id="load-more-container" class="load-more-container" style="display: none;">
             <button class="btn-load-more" onclick="loadMoreSessions()">Daha Fazla Göster</button>
         </div>
