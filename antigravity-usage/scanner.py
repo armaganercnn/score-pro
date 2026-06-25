@@ -108,13 +108,35 @@ def project_name_from_cwd(cwd):
         "Users", "armaganercan", ".gemini", "antigravity", "scratch", "Projects", 
         "Desktop", "Downloads", "Library", "bin", "config", "projects", "plugins", 
         "globalStorage", "rules", "scripts", ".cagent", ".zshenv", ".github", "User", 
-        "caveman", ".", "backend", "frontend-dev", "skills", "skills-disabled",
-        "wiki-optimizer", "sentinel", "orchestrator", "challenger", "reviewer", "auditor"
+        "caveman", ".", "backend", "frontend-dev", "skills", "skills-disabled"
     }
     for p in reversed(parts):
         if p not in ignore and p not in (".agents", "worktrees", "src", "components", "pages", "assets", "backend", "frontend", "utils", "lib"):
             return p
     return "Genel Sohbet"
+
+def project_name_from_convo_db(session_id):
+    """Try to extract the actual workspace path from the local conversation database."""
+    convo_db = Path("/Users/armaganercan/.gemini/antigravity/conversations") / f"{session_id}.db"
+    if not convo_db.exists():
+        return None
+    try:
+        conn = sqlite3.connect(str(convo_db))
+        row = conn.execute("SELECT data FROM trajectory_metadata_blob WHERE id = 'main'").fetchone()
+        conn.close()
+        if row and row[0]:
+            blob_data = row[0]
+            text = blob_data.decode('utf-8', errors='ignore')
+            # Look for file:///Users/... style URIs
+            match = re.search(r"file://(/Users/[a-zA-Z0-9_\-\./\+]+)", text)
+            if match:
+                uri_path = match.group(1)
+                return project_name_from_cwd(uri_path)
+            if "outside-of-project" in text:
+                return "Genel Sohbet"
+    except Exception:
+        pass
+    return None
 
 def migrate_existing_sessions(conn):
     """Clean up existing project names to follow the new naming format."""
@@ -128,13 +150,18 @@ def migrate_existing_sessions(conn):
         sid = row[0]
         pname = row[1]
         
-        turn_cursor = conn.execute("SELECT cwd FROM turns WHERE session_id = ? AND cwd IS NOT NULL AND cwd != '' ORDER BY timestamp ASC", (sid,))
-        new_pname = "Genel Sohbet"
-        for turn_row in turn_cursor.fetchall():
-            det = project_name_from_cwd(turn_row[0])
-            if det != "Genel Sohbet":
-                new_pname = det
-                break
+        # 1. Try convo db first
+        new_pname = project_name_from_convo_db(sid)
+        
+        # 2. Fallback to turns CWD scan
+        if not new_pname:
+            turn_cursor = conn.execute("SELECT cwd FROM turns WHERE session_id = ? AND cwd IS NOT NULL AND cwd != '' ORDER BY timestamp ASC", (sid,))
+            new_pname = "Genel Sohbet"
+            for turn_row in turn_cursor.fetchall():
+                det = project_name_from_cwd(turn_row[0])
+                if det != "Genel Sohbet":
+                    new_pname = det
+                    break
             
         if new_pname != pname:
             sessions_to_update.append((new_pname, sid))
@@ -143,6 +170,8 @@ def migrate_existing_sessions(conn):
         conn.executemany("UPDATE sessions SET project_name = ? WHERE session_id = ?", sessions_to_update)
         conn.commit()
         print(f"Migrated {len(sessions_to_update)} sessions to clean project names.")
+    
+    propagate_project_names(conn)
 
 def estimate_tokens(text):
     if not text:
@@ -253,7 +282,7 @@ def _calc_turn_tokens(idx, last_response_idx, step_tokens):
         t_cr = 0
     return t_in, t_cr, t_rd
 
-def _update_session_cwd_and_model(record, current_cwd, current_model, session_meta):
+def _update_session_cwd_and_model(record, current_cwd, current_model, session_meta, has_db_project=False):
     content = record.get("content", "")
     detected_model = parse_settings_change(content)
     if detected_model:
@@ -265,23 +294,26 @@ def _update_session_cwd_and_model(record, current_cwd, current_model, session_me
         inferred = extract_paths_from_args(tc.get("args"))
         if inferred:
             current_cwd = inferred
-            det = project_name_from_cwd(current_cwd)
-            if det != "Genel Sohbet" and session_meta["project_name"] == "Genel Sohbet":
-                session_meta["project_name"] = det
+            if not has_db_project:
+                det = project_name_from_cwd(current_cwd)
+                if det != "Genel Sohbet" and session_meta["project_name"] == "Genel Sohbet":
+                    session_meta["project_name"] = det
     return current_cwd, current_model
 
 def scan_transcript_file(filepath, session_id):
     steps = _load_transcript_steps(filepath)
     if not steps:
         return None, [], []
-    session_meta = {"session_id": session_id, "project_name": "Genel Sohbet", "session_title": "New Conversation", "git_branch": "main", "model": DEFAULT_MODEL, "total_input_tokens": 0, "total_output_tokens": 0, "total_cache_read": 0, "total_cache_creation": 0, "turn_count": 0}
+    
+    db_project = project_name_from_convo_db(session_id)
+    session_meta = {"session_id": session_id, "project_name": db_project or "Genel Sohbet", "session_title": "New Conversation", "git_branch": "main", "model": DEFAULT_MODEL, "total_input_tokens": 0, "total_output_tokens": 0, "total_cache_read": 0, "total_cache_creation": 0, "turn_count": 0}
     step_tokens = [estimate_step_tokens(s) for s in steps]
     current_model, current_cwd, first_title, first_ts, last_ts, last_response_idx, turns = DEFAULT_MODEL, str(Path.home()), None, None, None, -1, []
     subagent_ids = []
     for idx, rec in enumerate(steps):
         ts = rec.get("created_at")
         first_ts, last_ts = first_ts or ts, ts or last_ts
-        current_cwd, current_model = _update_session_cwd_and_model(rec, current_cwd, current_model, session_meta)
+        current_cwd, current_model = _update_session_cwd_and_model(rec, current_cwd, current_model, session_meta, has_db_project=bool(db_project))
         rtype, source, content = rec.get("type"), rec.get("source"), rec.get("content") or ""
         
         # Scan for spawned subagents
@@ -412,6 +444,7 @@ def scan(projects_dir=None):
 
     # Heuristic resolution for any missing parent links
     resolve_parent_sessions(conn)
+    propagate_project_names(conn)
 
     conn.commit()
     conn.close()
@@ -460,6 +493,47 @@ def resolve_parent_sessions(conn):
         conn.executemany("UPDATE sessions SET parent_session_id = ? WHERE session_id = ?", updates)
         conn.commit()
         print(f"Heuristically matched {len(updates)} subagent sessions to parents.")
+
+def propagate_project_names(conn):
+    """
+    Subagent oturumlarının (veya parent_session_id'si olan oturumların) 
+    proje adlarını, bağlı oldukları asıl parent/kök oturumun projesi ile günceller.
+    Böylece ignore listelerine gerek kalmadan asıl workspace projesini gösterirler.
+    """
+    # 1. Tüm session'ları ve parent_session_id'lerini çekelim
+    cursor = conn.execute("SELECT session_id, parent_session_id, project_name FROM sessions")
+    sessions = {row[0]: {"parent": row[1], "project": row[2]} for row in cursor.fetchall()}
+    
+    # 2. Her session için kök parent'ın projesini bulalım
+    def find_root_project(sid, visited=None):
+        if visited is None:
+            visited = set()
+        if sid in visited:  # Döngüsel bağımlılık koruması
+            return "Genel Sohbet"
+        visited.add(sid)
+        
+        info = sessions.get(sid)
+        if not info:
+            return "Genel Sohbet"
+        
+        # Eğer parent'ı varsa ve parent session tablomuzda kayıtlıysa recursive olarak köke git
+        if info["parent"] and info["parent"] in sessions:
+            return find_root_project(info["parent"], visited)
+        
+        # Parent yoksa kendi projesini döndür
+        return info["project"]
+
+    updates = []
+    for sid, info in sessions.items():
+        if info["parent"]:
+            root_proj = find_root_project(sid)
+            if root_proj != info["project"]:
+                updates.append((root_proj, sid))
+                
+    if updates:
+        conn.executemany("UPDATE sessions SET project_name = ? WHERE session_id = ?", updates)
+        conn.commit()
+        print(f"Propagated parent project names to {len(updates)} subagent sessions.")
 
 if __name__ == "__main__":
     scan()

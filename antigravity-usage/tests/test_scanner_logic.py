@@ -47,3 +47,39 @@ def test_calc_turn_tokens_first_vs_subsequent():
     assert t_rd == (10 + 20 + 30 + 40) + 4000
     assert t_in == 0
     assert t_cr == 0
+
+def test_propagate_project_names():
+    import sqlite3
+    from scanner import propagate_project_names
+    
+    conn = sqlite3.connect(":memory:")
+    conn.execute("""
+        CREATE TABLE sessions (
+            session_id TEXT PRIMARY KEY,
+            parent_session_id TEXT,
+            project_name TEXT
+        )
+    """)
+    # Setup hierarchy:
+    # root1 -> child1 -> grandchild1
+    # root2 (Genel Sohbet) -> child2
+    conn.execute("INSERT INTO sessions VALUES ('root1', NULL, 'diagram-studio')")
+    conn.execute("INSERT INTO sessions VALUES ('child1', 'root1', 'wiki-optimizer')")
+    conn.execute("INSERT INTO sessions VALUES ('grandchild1', 'child1', 'sentinel')")
+    
+    conn.execute("INSERT INTO sessions VALUES ('root2', NULL, 'Genel Sohbet')")
+    conn.execute("INSERT INTO sessions VALUES ('child2', 'root2', 'wiki-optimizer')")
+    
+    conn.commit()
+    
+    propagate_project_names(conn)
+    
+    # Assert root1 line propagated
+    assert conn.execute("SELECT project_name FROM sessions WHERE session_id='child1'").fetchone()[0] == "diagram-studio"
+    assert conn.execute("SELECT project_name FROM sessions WHERE session_id='grandchild1'").fetchone()[0] == "diagram-studio"
+    
+    # Assert root2 line did not overwrite with Genel Sohbet if we wanted to avoid it, 
+    # but based on our logic, it returns Genel Sohbet if root is Genel Sohbet
+    assert conn.execute("SELECT project_name FROM sessions WHERE session_id='child2'").fetchone()[0] == "Genel Sohbet"
+    
+    conn.close()
