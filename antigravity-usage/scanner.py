@@ -108,7 +108,8 @@ def project_name_from_cwd(cwd):
         "Users", "armaganercan", ".gemini", "antigravity", "scratch", "Projects", 
         "Desktop", "Downloads", "Library", "bin", "config", "projects", "plugins", 
         "globalStorage", "rules", "scripts", ".cagent", ".zshenv", ".github", "User", 
-        "caveman", ".", "backend", "frontend-dev", "skills", "skills-disabled"
+        "caveman", ".", "backend", "frontend-dev", "skills", "skills-disabled",
+        "wiki-optimizer", "sentinel", "orchestrator", "challenger", "reviewer", "auditor"
     }
     for p in reversed(parts):
         if p not in ignore and p not in (".agents", "worktrees", "src", "components", "pages", "assets", "backend", "frontend", "utils", "lib"):
@@ -127,7 +128,7 @@ def migrate_existing_sessions(conn):
         sid = row[0]
         pname = row[1]
         
-        turn_cursor = conn.execute("SELECT cwd FROM turns WHERE session_id = ? AND cwd IS NOT NULL AND cwd != '' ORDER BY timestamp DESC", (sid,))
+        turn_cursor = conn.execute("SELECT cwd FROM turns WHERE session_id = ? AND cwd IS NOT NULL AND cwd != '' ORDER BY timestamp ASC", (sid,))
         new_pname = "Genel Sohbet"
         for turn_row in turn_cursor.fetchall():
             det = project_name_from_cwd(turn_row[0])
@@ -265,7 +266,7 @@ def _update_session_cwd_and_model(record, current_cwd, current_model, session_me
         if inferred:
             current_cwd = inferred
             det = project_name_from_cwd(current_cwd)
-            if det != "Genel Sohbet":
+            if det != "Genel Sohbet" and session_meta["project_name"] == "Genel Sohbet":
                 session_meta["project_name"] = det
     return current_cwd, current_model
 
