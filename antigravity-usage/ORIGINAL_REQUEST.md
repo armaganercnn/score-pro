@@ -52,3 +52,46 @@ Integrity mode: development
 - [ ] The model filter chips display the correct model names including "gemini-3.5-flash-medium" and "gemini-3.5-flash-high".
 - [ ] Selecting "7g" (7 days) range correctly displays 8 days of data on the chart (the 7 days plus 1 extra day to offset timezone/UTC logs).
 - [ ] Estimated cost values reflect the corrected formula (inclusive of base input token cost).
+
+## Follow-up — 2026-06-25T18:04:03Z
+
+Geliştirici kullanım paneli (dashboard) üzerindeki "Son Oturumlar (Sessions)" tablosunu yatayda tam genişliğe (full-width) yaymak ve girdi, çıktı, önbellek hit/yazma gibi detayları ayrı sütunlarda (columns) yan yana eklemek.
+
+Working directory: /Users/armaganercan/.gemini/antigravity/scratch/antigravity-usage
+Integrity mode: development
+
+## Requirements
+
+### R1. Yatayda Tam Genişlik (Full Width Layout)
+`dashboard.py` içindeki "Son Oturumlar" tablosunu barındıran kartı (`.table-card`) yatayda tam ekranı kaplayacak veya mevcut sınırları aşarak maksimum alana yayılacak şekilde (`width: 100%` veya özel CSS grid/flex ayarı ile) güncellemek.
+
+### R2. Token ve Önbellek Detayları (Token & Cache Columns)
+Tablo sütunlarını güncelleyerek Giriş (Input), Önbellek Okuma / Hit (Cache Read), Önbellek Yazma (Cache Creation) ve Çıkış (Output) değerlerini ayrı kolonlar haline getirmek. 
+- Bu kolonların başlıklarına açıklayıcı tooltip'ler (bilgi balonları) veya info ikonları (`.info-icon`) eklenmelidir.
+- Hem ana oturum satırları (parent rows) hem de alt görev/subagent satırları (child rows) bu yeni sütun yapısına uygun şekilde veri göstermelidir.
+
+### R3. Görsel Tasarım ve Uyum (Aesthetics & Layout Consistency)
+- Tablo genişlediğinde metinlerin veya kolonların birbirinin üstüne binmesini önlemek.
+- Mevcut koyu tema (dark theme) renk paletine, yazı tiplerine (fonts) ve genel premium UI tasarım diline tam uyum sağlamak.
+
+## Acceptance Criteria
+
+### UI Layout
+- [ ] Tablo kartı (`.table-card`) ekranın yatay genişliğini tam kaplayacak şekilde genişletilmiş olmalı.
+- [ ] Tabloda şu sütunlar yan yana ve düzgün hizalanmış şekilde bulunmalı:
+  - Oturum (Session)
+  - Proje (Project)
+  - Son Aktif (Last Active)
+  - Süre (Duration)
+  - Model
+  - Dönüş (Turns)
+  - Giriş (Input)
+  - Önbellek Okuma / Hit (Cache Read)
+  - Önbellek Yazma (Cache Creation)
+  - Çıkış (Output)
+  - Tahmini Maliyet (Cost)
+- [ ] Sütun başlıklarının üzerine gelindiğinde (veya info ikonuna tıklandığında) ilgili sütunun neyi ifade ettiğini belirten Türkçe açıklama tooltip'leri görünmeli.
+
+### Code Quality & Validation
+- [ ] `dashboard.py` dosyası hatasız derlenmeli ve çalışmalı.
+- [ ] Tablonun açılır/kapanır alt görev (child rows) fonksiyonu bozulmamış olmalı ve alt satırlardaki değerler de doğru kolonlara hizalanmalı.

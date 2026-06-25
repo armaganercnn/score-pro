@@ -403,6 +403,12 @@ HTML_PAGE = r"""<!DOCTYPE html>
             padding: 0 30px 20px 30px;
         }
 
+        .container-wide {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 30px 20px 30px;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -548,6 +554,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             border-bottom: 1px solid var(--card-border);
             font-weight: 700;
             letter-spacing: 0.8px;
+            white-space: nowrap;
         }
 
         td {
@@ -556,6 +563,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
             font-size: 13px;
             color: var(--text-main);
             vertical-align: middle;
+            white-space: nowrap;
         }
 
         tr:hover td {
@@ -877,10 +885,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
             </div>
         </div>
     </div>
+</div>
 
-
-
-    <!-- Sessions Table -->
+<!-- Sessions Table -->
+<div class="container-wide">
     <div class="table-card">
         <h2>Son Oturumlar (Sessions)<span class="info-icon">i<span class="tooltip-text">Yakın zamanda gerçekleştirilen geliştirme oturumlarının listesi ve detayları.</span></span></h2>
         <div class="table-responsive">
@@ -893,8 +901,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
                         <th>Süre<span class="info-icon">i<span class="tooltip-text">Sohbetin ilk mesajı ile son mesajı arasında geçen toplam süre.</span></span></th>
                         <th>Model<span class="info-icon">i<span class="tooltip-text">Sohbet içerisinde kullanılan LLM modeli.</span></span></th>
                         <th>Dönüş<span class="info-icon">i<span class="tooltip-text">Sohbet içerisindeki toplam asistan yanıtı sayısı.</span></span></th>
-                        <th>Giriş<span class="info-icon">i<span class="tooltip-text">Bu sohbette harcanan toplam girdi tokenleri.</span></span></th>
-                        <th>Çıkış<span class="info-icon">i<span class="tooltip-text">Bu sohbette üretilen toplam çıktı tokenleri.</span></span></th>
+                        <th>Giriş<span class="info-icon">i<span class="tooltip-text">Asistana gönderilen toplam girdi token sayısı (önbellek yazma hariç).</span></span></th>
+                        <th>Önbellek Okuma / Hit<span class="info-icon">i<span class="tooltip-text">İstek önbelleğinden (context caching) okunan ve indirimli faturalandırılan token sayısı.</span></span></th>
+                        <th>Önbellek Yazma<span class="info-icon">i<span class="tooltip-text">Önbelleğe ilk kez yazılan ve sonraki dönüşlerde okunabilecek bağlam token sayısı.</span></span></th>
+                        <th>Çıkış<span class="info-icon">i<span class="tooltip-text">Asistanın ürettiği toplam çıktı token sayısı.</span></span></th>
                         <th>Tahmini Maliyet<span class="info-icon">i<span class="tooltip-text">Sohbetin girdileri ve çıktıları doğrultusunda tahmini toplam maliyeti.</span></span></th>
                     </tr>
                 </thead>
@@ -1410,11 +1420,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
             }
 
             // 4. Cache / input token information
-            let cacheHtml = '';
             let inputTitle = `Toplam Girdi: ${s.displayInput.toLocaleString()} token`;
             if (s.displayCacheRead > 0) {
                 const hitPercent = ((s.displayCacheRead / (s.displayInput || 1)) * 100).toFixed(0);
-                cacheHtml = `<div style="font-size: 11px; color: var(--color-cache-read); font-weight: 500; margin-top: 2px;" title="Önbellek Hit: ${s.displayCacheRead.toLocaleString()} token (%${hitPercent})">⚡ ${formatNumber(s.displayCacheRead)}</div>`;
                 inputTitle += `\n- Önbellek Hit: ${s.displayCacheRead.toLocaleString()} token (%${hitPercent})`;
             }
             if (s.displayCacheCreation > 0) {
@@ -1439,10 +1447,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 <td>${s.duration_min} dk${avgTurnTimeHtml}</td>
                 <td><span class="model-badge ${getModelBadgeClass(s.model)}">${cleanModelName(s.model)}</span></td>
                 <td>${s.displayTurns}</td>
-                <td class="mono" title="${inputTitle}">
-                    ${formatNumber(s.displayInput)}
-                    ${cacheHtml}
-                </td>
+                <td class="mono" title="${inputTitle}">${formatNumber(s.displayInput)}</td>
+                <td class="mono">${s.displayCacheRead > 0 ? '⚡ ' + formatNumber(s.displayCacheRead) : '-'}</td>
+                <td class="mono">${s.displayCacheCreation > 0 ? '✍️ ' + formatNumber(s.displayCacheCreation) : '-'}</td>
                 <td class="mono">${formatNumber(s.displayOutput)}</td>
                 <td class="cost-text">${formatCost(s.displayCost)}</td>
             `;
@@ -1494,11 +1501,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     }
 
                     // Child Cache / input token information
-                    let childCacheHtml = '';
                     let childInputTitle = `Toplam Girdi: ${c.input.toLocaleString()} token`;
                     if (c.cache_read > 0) {
                         const hitPercent = ((c.cache_read / (c.input || 1)) * 100).toFixed(0);
-                        childCacheHtml = `<div style="font-size: 10px; color: var(--color-cache-read); font-weight: 500; margin-top: 2px;" title="Önbellek Hit: ${c.cache_read.toLocaleString()} token (%${hitPercent})">⚡ ${formatNumber(c.cache_read)}</div>`;
                         childInputTitle += `\n- Önbellek Hit: ${c.cache_read.toLocaleString()} token (%${hitPercent})`;
                     }
                     if (c.cache_creation > 0) {
@@ -1523,10 +1528,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
                         <td style="color: var(--text-muted);">${c.duration_min} dk${childAvgTurnTimeHtml}</td>
                         <td><span class="model-badge ${getModelBadgeClass(c.model)}" style="opacity: 0.7;">${cleanModelName(c.model)}</span></td>
                         <td style="color: var(--text-muted);">${c.turns}</td>
-                        <td class="mono" style="color: var(--text-muted);" title="${childInputTitle}">
-                            ${formatNumber(c.input)}
-                            ${childCacheHtml}
-                        </td>
+                        <td class="mono" style="color: var(--text-muted);" title="${childInputTitle}">${formatNumber(c.input)}</td>
+                        <td class="mono" style="color: var(--text-muted);">${c.cache_read > 0 ? '⚡ ' + formatNumber(c.cache_read) : '-'}</td>
+                        <td class="mono" style="color: var(--text-muted);">${c.cache_creation > 0 ? '✍️ ' + formatNumber(c.cache_creation) : '-'}</td>
                         <td class="mono" style="color: var(--text-muted);">${formatNumber(c.output)}</td>
                         <td class="cost-text" style="opacity: 0.8;">${formatCost(c.cost)}</td>
                     `;

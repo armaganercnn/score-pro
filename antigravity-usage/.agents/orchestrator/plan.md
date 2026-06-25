@@ -1,37 +1,30 @@
-# Execution Plan
+# Execution Plan - Follow-up Table Update
 
 ## Milestones & Tasks
 
-### Milestone 1: E2E Testing Track
-- Spawn E2E Testing Orchestrator (or do it via subagent/self) to design `TEST_INFRA.md` and implement the 4-tier E2E testing.
-- Target: At least 11 * N + max(5, N/2) tests, covering features, boundary/corner cases, cross-feature combinations, and real-world scenarios.
-- Generate tests and publish `TEST_READY.md`.
+### Milestone 1: Exploration
+- Examine the layout, styling, and JavaScript logic of the Sessions table in `dashboard.py`.
+- Identify elements to modify: CSS grid/max-width for container and `.table-card`, table headers structure, JavaScript table rendering logic for both parent (`parent-row`) and child (`child-row`) rows.
+- Verify existing tests and plan how to write unit tests / E2E tests for the new column layout.
 
-### Milestone 2: R1 Model Settings Parsing
-- Update `scanner.py` regex `changed setting\s+\`Model Selection\`\s+from\s+.*?\s+to\s+([^`\n\.]+)` to not truncate decimal values.
-- Ensure correct mapping to "Gemini 3.5 Flash (High)".
-- Update UI labels from `'gemini-3.5-flash'` to `'gemini-3.5-flash-medium'` or `'flash-medium'`.
+### Milestone 2: Implementation
+- Modify CSS in `dashboard.py` to:
+  - Expand container's maximum width or allow `.table-card` to scale cleanly to full width.
+  - Fix any layout overlaps and adjust column widths.
+- Modify HTML table headers in `dashboard.py`:
+  - Enumerate the 11 columns in the correct order: Session, Project, Last Active, Duration, Model, Turns, Input, Cache Read, Cache Creation, Output, Cost.
+  - Add descriptive tooltips with info icons (`.info-icon` / `.tooltip-text`) for each new column header:
+    - Input: "Asistana gönderilen toplam girdi token sayısı (önbellek yazma hariç)."
+    - Cache Read: "İstek önbelleğinden (context caching) okunan ve indirimli faturalandırılan token sayısı."
+    - Cache Creation: "Önbelleğe ilk kez yazılan ve sonraki dönüşlerde okunabilecek bağlam token sayısı."
+    - Output: "Asistanın ürettiği toplam çıktı token sayısı."
+- Modify JavaScript rendering in `dashboard.py`:
+  - Render the parent rows with 11 cells mapping to the 11 columns.
+  - Render the child rows (subagent rows) with 11 cells matching the same column structure.
+  - Ensure correct variable names: `s.displayInput` / `c.input`, `s.displayCacheRead` / `c.cache_read`, `s.displayCacheCreation` / `c.cache_creation`, `s.displayOutput` / `c.output` are rendered in their separate columns.
 
-### Milestone 3: R2 Caching & Cost Calculations
-- Modify session caching in `scanner.py`: `cache_creation_tokens` should only be set on the first turn of a session, and be `0` for subsequent turns.
-- In `dashboard.py` and `cli.py`, implement full cost calculations:
-  - Cache write tokens: `cache_write * cw_rate` (1.25x base)
-  - Cache read tokens: `cache_read * cr_rate` (0.1x base)
-  - Normal input tokens: `normal_input = max(0, total_input - cache_write)` at base rate
-  - Output tokens: `out * output_rate`
-  - Total = Sum of these four components.
-
-### Milestone 4: R3 Date Range Adjustments
-- Add +1 day to duration or subtract `days + 1` from cutoff date in dashboard data retrieval/filters to capture full date range.
-
-### Milestone 5: R4 Premium Compact UI & Blue Theme
-- Change CSS variables / color palette: `#0b0f19` (background), `#151b2c` (card), `#38bdf8` (cyan/blue accent).
-- Royal blue for inputs, Violet for outputs, Teal for cache read, Cyan for cache write.
-- Update layout to use a single 7-column grid on desktop.
-- Reduce margins/paddings, reduce chart heights (290px/240px).
-
-### Milestone 6: E2E Integration, Review & Hardening
-- Rebuild database with `python cli.py scan`.
-- Run E2E tests and fix any failing test cases.
-- Run Reviewers, Challengers, and Forensic Auditor for validation.
-- Success and handoff.
+### Milestone 3: Verification
+- Verify compilation and execution of `dashboard.py`.
+- Run E2E test suite to verify dashboard functionality.
+- Write new E2E or unit tests to verify the new table columns and tooltips.
+- Audit the implementation using the Forensic Auditor tool.
