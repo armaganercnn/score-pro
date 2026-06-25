@@ -208,7 +208,7 @@ def get_dashboard_data():
             "title": r["session_title"],
             "branch": r["git_branch"],
             "last_active": formatted_last_active,
-            "last_active_raw": r["local_last_timestamp"][:10] if r["local_last_timestamp"] else "",
+            "last_active_raw": r["local_last_timestamp"] if r["local_last_timestamp"] else "",
             "duration_min": duration_min,
             "model": model_name,
             "turns": r["turn_count"],
@@ -666,6 +666,26 @@ HTML_PAGE = r"""<!DOCTYPE html>
             text-transform: uppercase;
             margin-left: 6px;
         }
+        .session-branch {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(56, 189, 248, 0.06);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            color: var(--blue-primary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 500;
+            margin-top: 2px;
+            gap: 4px;
+            font-family: 'Outfit', -apple-system, sans-serif;
+            text-transform: none;
+        }
+        .session-branch svg {
+            color: var(--blue-primary);
+            opacity: 0.8;
+            flex-shrink: 0;
+        }
         
         /* Tooltip & Info icon styles */
         .info-icon {
@@ -724,6 +744,28 @@ HTML_PAGE = r"""<!DOCTYPE html>
         .info-icon:hover .tooltip-text {
             visibility: visible;
             opacity: 1;
+        }
+        .load-more-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px 0 10px 0;
+        }
+        .btn-load-more {
+            background-color: transparent;
+            color: var(--blue-primary);
+            border: 1px solid var(--blue-border);
+            padding: 8px 24px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-load-more:hover {
+            background-color: var(--blue-primary);
+            color: var(--bg);
+            border-color: var(--blue-primary);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
         }
     </style>
 </head>
@@ -821,44 +863,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- Benchmark Grid -->
-    <div class="charts-grid" style="margin-top: 20px; margin-bottom: 20px;">
-        <div class="table-card" style="margin-bottom: 0;">
-            <h2>Modeller Benchmark Analizi<span class="info-icon">i<span class="tooltip-text">Kullanılan yapay zeka modellerinin performans, maliyet ve verimlilik karşılaştırması.</span></span></h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Model</th>
-                        <th>Dönüş</th>
-                        <th>Ort. Giriş</th>
-                        <th>Ort. Çıkış</th>
-                        <th>Önbellek Verimliliği<span class="info-icon">i<span class="tooltip-text">Girdi tokenlerinin yüzde kaçının önbellekten (ücretsiz/indirimli) okunduğunu gösterir.</span></span></th>
-                        <th>Toplam Maliyet</th>
-                    </tr>
-                </thead>
-                <tbody id="benchmark-models-body">
-                    <!-- Dynamic benchmark rows -->
-                </tbody>
-            </table>
-        </div>
-        <div class="table-card" style="margin-bottom: 0;">
-            <h2>Projeler Benchmark Analizi<span class="info-icon">i<span class="tooltip-text">Geliştirilen projelerin harcanan efor, model maliyeti ve önbellek verimliliği kıyaslaması.</span></span></h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Proje</th>
-                        <th>Oturum</th>
-                        <th>Dönüş</th>
-                        <th>Önbellek Verimliliği<span class="info-icon">i<span class="tooltip-text">Girdi tokenlerinin yüzde kaçının önbellekten (ücretsiz/indirimli) okunduğunu gösterir.</span></span></th>
-                        <th>Toplam Maliyet</th>
-                    </tr>
-                </thead>
-                <tbody id="benchmark-projects-body">
-                    <!-- Dynamic benchmark rows -->
-                </tbody>
-            </table>
-        </div>
-    </div>
+
 
     <!-- Sessions Table -->
     <div class="table-card">
@@ -881,6 +886,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 <!-- Dynamic rows -->
             </tbody>
         </table>
+        <div id="load-more-container" class="load-more-container" style="display: none;">
+            <button class="btn-load-more" onclick="loadMoreSessions()">Daha Fazla Göster</button>
+        </div>
     </div>
 </div>
 
@@ -910,6 +918,11 @@ HTML_PAGE = r"""<!DOCTYPE html>
         }
     }
 
+    function loadMoreSessions() {
+        sessionsLimit += 50;
+        updateDashboard();
+    }
+
     let rawData = null;
     let selectedModels = new Set();
     let selectedRange = "30d";
@@ -918,6 +931,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     let chartProjects = null;
     let refreshTimer = null;
     let secondsLeft = 30;
+    let sessionsLimit = 50;
 
     // Helper to format large numbers to K, M, B
     function formatNumber(num) {
@@ -932,6 +946,42 @@ HTML_PAGE = r"""<!DOCTYPE html>
         if (cost === 0) return '$0.0000';
         if (cost < 1) return '$' + cost.toFixed(4);
         return '$' + cost.toFixed(2);
+    }
+
+    // Helper to calculate relative time
+    function formatRelativeTime(rawDateStr) {
+        if (!rawDateStr) return '';
+        try {
+            // rawDateStr is in format "YYYY-MM-DD HH:MM:SS" (local time from sqlite)
+            const parts = rawDateStr.split(' ');
+            if (parts.length < 2) return '';
+            const dateParts = parts[0].split('-');
+            const timeParts = parts[1].split(':');
+            
+            const year = parseInt(dateParts[0]);
+            const month = parseInt(dateParts[1]) - 1;
+            const day = parseInt(dateParts[2]);
+            const hour = parseInt(timeParts[0]);
+            const minute = parseInt(timeParts[1]);
+            const second = timeParts[2] ? parseInt(timeParts[2]) : 0;
+            
+            const date = new Date(year, month, day, hour, minute, second);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.floor(diffMs / 1000);
+            const diffMin = Math.floor(diffSec / 60);
+            const diffHr = Math.floor(diffMin / 60);
+            const diffDays = Math.floor(diffHr / 24);
+            
+            if (diffSec < 60) return 'şimdi';
+            if (diffMin < 60) return `${diffMin} dk önce`;
+            if (diffHr < 24) return `${diffHr} sa önce`;
+            if (diffDays === 1) return 'dün';
+            if (diffDays < 7) return `${diffDays} gün önce`;
+            return '';
+        } catch (e) {
+            return '';
+        }
     }
 
     // Get model CSS badge class
@@ -1129,6 +1179,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         allChip.innerText = 'All';
         allChip.onclick = () => {
             rawData.all_models.forEach(m => selectedModels.add(m));
+            sessionsLimit = 50;
             renderFilters();
             updateDashboard();
         };
@@ -1139,6 +1190,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
         noneChip.innerText = 'None';
         noneChip.onclick = () => {
             selectedModels.clear();
+            sessionsLimit = 50;
             renderFilters();
             updateDashboard();
         };
@@ -1156,6 +1208,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 } else {
                     selectedModels.add(model);
                 }
+                sessionsLimit = 50;
                 renderFilters();
                 updateDashboard();
             };
@@ -1169,6 +1222,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 rangeChips.forEach(c => c.classList.remove('active'));
                 this.classList.add('active');
                 selectedRange = this.getAttribute('data-range');
+                sessionsLimit = 50;
                 updateDashboard();
             };
         });
@@ -1203,7 +1257,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
             if (!selectedModels.has(s.model)) return false;
             // Date filter
             if (cutoffDate) {
-                const sDate = new Date(s.last_active_raw + 'T00:00:00');
+                const datePart = s.last_active_raw ? s.last_active_raw.split(' ')[0] : '';
+                const sDate = new Date(datePart + 'T00:00:00');
                 if (sDate < cutoffDate) return false;
             }
             return true;
@@ -1265,7 +1320,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
             const filteredChildren = (s.children || []).filter(c => {
                 if (!selectedModels.has(c.model)) return false;
                 if (cutoffDate) {
-                    const cDate = new Date(c.last_active_raw + 'T00:00:00');
+                    const datePart = c.last_active_raw ? c.last_active_raw.split(' ')[0] : '';
+                    const cDate = new Date(datePart + 'T00:00:00');
                     if (cDate < cutoffDate) return false;
                 }
                 return true;
@@ -1296,7 +1352,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
         const tbody = document.getElementById('sessions-table-body');
         tbody.innerHTML = '';
         
-        displaySessions.forEach(s => {
+        const sessionsToRender = displaySessions.slice(0, sessionsLimit);
+        sessionsToRender.forEach(s => {
             const tr = document.createElement('tr');
             tr.className = 'parent-row';
             tr.setAttribute('data-session-id', s.session_id_full);
@@ -1307,29 +1364,75 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 : '';
                 
             const displayTitle = s.title.length > 60 ? s.title.substring(0, 57) + '...' : s.title;
+
+            // 1. Branch Html
+            const branchHtml = s.branch && s.branch !== 'unknown' && s.branch !== 'None'
+                ? `<span class="session-branch" title="Git Dalı: ${s.branch}">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="6" y1="3" x2="6" y2="15"></line>
+                        <circle cx="18" cy="6" r="3"></circle>
+                        <circle cx="6" cy="18" r="3"></circle>
+                        <path d="M18 9a9 9 0 0 1-9 9"></path>
+                    </svg>
+                    ${s.branch}
+                   </span>`
+                : '';
+
+            // 2. Relative active time
+            const relativeTime = formatRelativeTime(s.last_active_raw);
+            const relativeHtml = relativeTime ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${relativeTime}</div>` : '';
+
+            // 3. Average time per turn
+            let avgTurnTimeHtml = '';
+            if (s.displayTurns > 0 && s.duration_min > 0) {
+                const avgSec = (s.duration_min * 60) / s.displayTurns;
+                const avgText = avgSec >= 60 
+                    ? `${(avgSec / 60).toFixed(1)} dk/dönüş` 
+                    : `${Math.round(avgSec)} sn/dönüş`;
+                avgTurnTimeHtml = `<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${avgText}</div>`;
+            }
+
+            // 4. Cache / input token information
+            let cacheHtml = '';
+            let inputTitle = `Toplam Girdi: ${s.displayInput.toLocaleString()} token`;
+            if (s.displayCacheRead > 0) {
+                const hitPercent = ((s.displayCacheRead / (s.displayInput || 1)) * 100).toFixed(0);
+                cacheHtml = `<div style="font-size: 11px; color: var(--color-cache-read); font-weight: 500; margin-top: 2px;" title="Önbellek Hit: ${s.displayCacheRead.toLocaleString()} token (%${hitPercent})">⚡ ${formatNumber(s.displayCacheRead)}</div>`;
+                inputTitle += `\n- Önbellek Hit: ${s.displayCacheRead.toLocaleString()} token (%${hitPercent})`;
+            }
+            if (s.displayCacheCreation > 0) {
+                inputTitle += `\n- Önbellek Yazma: ${s.displayCacheCreation.toLocaleString()} token`;
+            }
+
             tr.innerHTML = `
                 <td>
-                    <div style="display: flex; align-items: flex-start; gap: 4px;">
+                    <div style="display: flex; align-items: flex-start; gap: 6px;">
                         ${toggleIconHtml}
                         <div>
                             <div title="${s.title}" style="font-weight: 600; color: var(--text-bright); margin-bottom: 2px; cursor: help;">${displayTitle}</div>
-                            <div class="session-id">${s.session_id}</div>
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <span class="session-id">${s.session_id}</span>
+                                ${branchHtml}
+                            </div>
                         </div>
                     </div>
                 </td>
                 <td style="font-weight: 500;">${s.project}</td>
-                <td class="mono">${s.last_active}</td>
-                <td>${s.duration_min} dk</td>
+                <td class="mono">${s.last_active}${relativeHtml}</td>
+                <td>${s.duration_min} dk${avgTurnTimeHtml}</td>
                 <td><span class="model-badge ${getModelBadgeClass(s.model)}">${cleanModelName(s.model)}</span></td>
                 <td>${s.displayTurns}</td>
-                <td class="mono">${formatNumber(s.displayInput)}</td>
+                <td class="mono" title="${inputTitle}">
+                    ${formatNumber(s.displayInput)}
+                    ${cacheHtml}
+                </td>
                 <td class="mono">${formatNumber(s.displayOutput)}</td>
                 <td class="cost-text">${formatCost(s.displayCost)}</td>
             `;
             
             if (hasChildren) {
                 tr.onclick = function(e) {
-                    if (e.target.tagName !== 'A' && !e.target.classList.contains('model-badge')) {
+                    if (e.target.tagName !== 'A' && !e.target.classList.contains('model-badge') && !e.target.closest('.session-branch')) {
                         toggleChildren(s.session_id_full);
                     }
                 };
@@ -1345,6 +1448,46 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     ctr.style.display = 'none';
                     
                     const displayChildTitle = c.title.length > 60 ? c.title.substring(0, 57) + '...' : c.title;
+
+                    // Child Branch Html
+                    const childBranchHtml = c.branch && c.branch !== 'unknown' && c.branch !== 'None'
+                        ? `<span class="session-branch" title="Git Dalı: ${c.branch}">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="6" y1="3" x2="6" y2="15"></line>
+                                <circle cx="18" cy="6" r="3"></circle>
+                                <circle cx="6" cy="18" r="3"></circle>
+                                <path d="M18 9a9 9 0 0 1-9 9"></path>
+                            </svg>
+                            ${c.branch}
+                           </span>`
+                        : '';
+
+                    // Child Relative active time
+                    const childRelativeTime = formatRelativeTime(c.last_active_raw);
+                    const childRelativeHtml = childRelativeTime ? `<div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">${childRelativeTime}</div>` : '';
+
+                    // Child Average time per turn
+                    let childAvgTurnTimeHtml = '';
+                    if (c.turns > 0 && c.duration_min > 0) {
+                        const avgSec = (c.duration_min * 60) / c.turns;
+                        const avgText = avgSec >= 60 
+                            ? `${(avgSec / 60).toFixed(1)} dk/dönüş` 
+                            : `${Math.round(avgSec)} sn/dönüş`;
+                        childAvgTurnTimeHtml = `<div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">${avgText}</div>`;
+                    }
+
+                    // Child Cache / input token information
+                    let childCacheHtml = '';
+                    let childInputTitle = `Toplam Girdi: ${c.input.toLocaleString()} token`;
+                    if (c.cache_read > 0) {
+                        const hitPercent = ((c.cache_read / (c.input || 1)) * 100).toFixed(0);
+                        childCacheHtml = `<div style="font-size: 10px; color: var(--color-cache-read); font-weight: 500; margin-top: 2px;" title="Önbellek Hit: ${c.cache_read.toLocaleString()} token (%${hitPercent})">⚡ ${formatNumber(c.cache_read)}</div>`;
+                        childInputTitle += `\n- Önbellek Hit: ${c.cache_read.toLocaleString()} token (%${hitPercent})`;
+                    }
+                    if (c.cache_creation > 0) {
+                        childInputTitle += `\n- Önbellek Yazma: ${c.cache_creation.toLocaleString()} token`;
+                    }
+
                     ctr.innerHTML = `
                         <td>
                             <div class="child-indent">
@@ -1352,15 +1495,21 @@ HTML_PAGE = r"""<!DOCTYPE html>
                                     ${displayChildTitle}
                                     <span class="badge-subagent">Alt Görev</span>
                                 </div>
-                                <div class="session-id">${c.session_id}</div>
+                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                    <span class="session-id">${c.session_id}</span>
+                                    ${childBranchHtml}
+                                </div>
                             </div>
                         </td>
                         <td style="font-weight: 400; color: var(--text-muted);">${c.project}</td>
-                        <td class="mono" style="color: var(--text-muted);">${c.last_active}</td>
-                        <td style="color: var(--text-muted);">${c.duration_min} dk</td>
+                        <td class="mono" style="color: var(--text-muted);">${c.last_active}${childRelativeHtml}</td>
+                        <td style="color: var(--text-muted);">${c.duration_min} dk${childAvgTurnTimeHtml}</td>
                         <td><span class="model-badge ${getModelBadgeClass(c.model)}" style="opacity: 0.7;">${cleanModelName(c.model)}</span></td>
                         <td style="color: var(--text-muted);">${c.turns}</td>
-                        <td class="mono" style="color: var(--text-muted);">${formatNumber(c.input)}</td>
+                        <td class="mono" style="color: var(--text-muted);" title="${childInputTitle}">
+                            ${formatNumber(c.input)}
+                            ${childCacheHtml}
+                        </td>
                         <td class="mono" style="color: var(--text-muted);">${formatNumber(c.output)}</td>
                         <td class="cost-text" style="opacity: 0.8;">${formatCost(c.cost)}</td>
                     `;
@@ -1369,73 +1518,17 @@ HTML_PAGE = r"""<!DOCTYPE html>
             }
         });
 
-        // 1. Model Benchmark Calculation
-        const modelBenchmark = {};
-        filteredSessions.forEach(s => {
-            const m = s.model;
-            if (!modelBenchmark[m]) {
-                modelBenchmark[m] = { turns: 0, input: 0, output: 0, cache_read: 0, cost: 0 };
+        // Update load more button visibility
+        const loadMoreContainer = document.getElementById('load-more-container');
+        if (loadMoreContainer) {
+            if (displaySessions.length > sessionsLimit) {
+                loadMoreContainer.style.display = 'flex';
+            } else {
+                loadMoreContainer.style.display = 'none';
             }
-            modelBenchmark[m].turns += s.turns;
-            modelBenchmark[m].input += s.input;
-            modelBenchmark[m].output += s.output;
-            modelBenchmark[m].cache_read += s.cache_read;
-            modelBenchmark[m].cost += s.cost;
-        });
+        }
 
-        const benchmarkModelsBody = document.getElementById('benchmark-models-body');
-        benchmarkModelsBody.innerHTML = '';
-        Object.entries(modelBenchmark).sort((a, b) => b[1].cost - a[1].cost).forEach(([model, data]) => {
-            const tr = document.createElement('tr');
-            const cacheHitRate = data.input + data.cache_read > 0 
-                ? ((data.cache_read / (data.input + data.cache_read)) * 100).toFixed(1) + '%' 
-                : '0%';
-            const avgInput = data.turns > 0 ? formatNumber(Math.round(data.input / data.turns)) : '0';
-            const avgOutput = data.turns > 0 ? formatNumber(Math.round(data.output / data.turns)) : '0';
-            
-            tr.innerHTML = `
-                <td><span class="model-badge ${getModelBadgeClass(model)}">${cleanModelName(model)}</span></td>
-                <td>${data.turns}</td>
-                <td class="mono">${avgInput}</td>
-                <td class="mono">${avgOutput}</td>
-                <td class="mono" style="color: var(--color-cache-read); font-weight: 500;">${cacheHitRate}</td>
-                <td class="cost-text" style="font-weight: 600;">${formatCost(data.cost)}</td>
-            `;
-            benchmarkModelsBody.appendChild(tr);
-        });
 
-        // 2. Project Benchmark Calculation
-        const projectBenchmark = {};
-        filteredSessions.forEach(s => {
-            const p = s.project || 'unknown';
-            if (!projectBenchmark[p]) {
-                projectBenchmark[p] = { sessions: 0, turns: 0, input: 0, output: 0, cache_read: 0, cost: 0 };
-            }
-            projectBenchmark[p].sessions += 1;
-            projectBenchmark[p].turns += s.turns;
-            projectBenchmark[p].input += s.input;
-            projectBenchmark[p].output += s.output;
-            projectBenchmark[p].cache_read += s.cache_read;
-            projectBenchmark[p].cost += s.cost;
-        });
-
-        const benchmarkProjectsBody = document.getElementById('benchmark-projects-body');
-        benchmarkProjectsBody.innerHTML = '';
-        Object.entries(projectBenchmark).sort((a, b) => b[1].cost - a[1].cost).forEach(([project, data]) => {
-            const tr = document.createElement('tr');
-            const cacheHitRate = data.input + data.cache_read > 0 
-                ? ((data.cache_read / (data.input + data.cache_read)) * 100).toFixed(1) + '%' 
-                : '0%';
-            
-            tr.innerHTML = `
-                <td style="font-weight: 600; color: var(--text-bright);">${project}</td>
-                <td>${data.sessions}</td>
-                <td>${data.turns}</td>
-                <td class="mono" style="color: var(--color-cache-read); font-weight: 500;">${cacheHitRate}</td>
-                <td class="cost-text" style="font-weight: 600;">${formatCost(data.cost)}</td>
-            `;
-            benchmarkProjectsBody.appendChild(tr);
-        });
 
         renderCharts(cutoffDate);
     }
