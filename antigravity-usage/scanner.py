@@ -29,7 +29,8 @@ def init_db(conn):
             total_cache_creation    INTEGER DEFAULT 0,
             model           TEXT,
             turn_count      INTEGER DEFAULT 0,
-            session_title   TEXT
+            session_title   TEXT,
+            parent_session_id TEXT
         );
 
         CREATE TABLE IF NOT EXISTS turns (
@@ -63,6 +64,11 @@ def init_db(conn):
         conn.execute("SELECT session_title FROM sessions LIMIT 1")
     except sqlite3.OperationalError:
         conn.execute("ALTER TABLE sessions ADD COLUMN session_title TEXT")
+    # Add parent_session_id column if upgrading from older schema
+    try:
+        conn.execute("SELECT parent_session_id FROM sessions LIMIT 1")
+    except sqlite3.OperationalError:
+        conn.execute("ALTER TABLE sessions ADD COLUMN parent_session_id TEXT")
     conn.commit()
 
 def project_name_from_cwd(cwd):
@@ -255,15 +261,24 @@ def _update_session_cwd_and_model(record, current_cwd, current_model, session_me
 def scan_transcript_file(filepath, session_id):
     steps = _load_transcript_steps(filepath)
     if not steps:
-        return None, []
+        return None, [], []
     session_meta = {"session_id": session_id, "project_name": "Genel Sohbet", "session_title": "New Conversation", "git_branch": "main", "model": DEFAULT_MODEL, "total_input_tokens": 0, "total_output_tokens": 0, "total_cache_read": 0, "total_cache_creation": 0, "turn_count": 0}
     step_tokens = [estimate_step_tokens(s) for s in steps]
     current_model, current_cwd, first_title, first_ts, last_ts, last_response_idx, turns = DEFAULT_MODEL, str(Path.home()), None, None, None, -1, []
+    subagent_ids = []
     for idx, rec in enumerate(steps):
         ts = rec.get("created_at")
         first_ts, last_ts = first_ts or ts, ts or last_ts
         current_cwd, current_model = _update_session_cwd_and_model(rec, current_cwd, current_model, session_meta)
         rtype, source, content = rec.get("type"), rec.get("source"), rec.get("content") or ""
+        
+        # Scan for spawned subagents
+        if content:
+            matches = re.findall(r'conversationId["\\]+:\s*["\\]+([a-f0-9\-]{36})', content, re.IGNORECASE)
+            for m in matches:
+                if m not in subagent_ids:
+                    subagent_ids.append(m)
+                    
         if (rtype == "USER_INPUT" or source == "USER_EXPLICIT") and content.strip():
             first_title = first_title or content
         if rtype in ("PLANNER_RESPONSE", "ASK_QUESTION"):
@@ -282,7 +297,7 @@ def scan_transcript_file(filepath, session_id):
             session_meta["turn_count"] += 1
             last_response_idx = idx
     session_meta.update({"first_timestamp": first_ts or datetime.utcnow().isoformat() + "Z", "last_timestamp": last_ts or datetime.utcnow().isoformat() + "Z", "session_title": extract_session_title(first_title)})
-    return session_meta, turns
+    return session_meta, turns, subagent_ids
 
 
 def scan(projects_dir=None):
@@ -293,6 +308,7 @@ def scan(projects_dir=None):
 
     migrate_existing_sessions(conn)
     print("Scanning Antigravity logs...")
+    all_relations = []
 
     # Traverse all folders under brain directory
     if not BRAIN_DIR.exists():
@@ -325,9 +341,15 @@ def scan(projects_dir=None):
                 continue
 
         print(f"Parsing session: {session_id[:8]}...")
-        session_meta, turns = scan_transcript_file(transcript_file, session_id)
+        session_meta, turns, subagent_ids = scan_transcript_file(transcript_file, session_id)
         if not session_meta:
             continue
+
+        # Extract parent relation if existing to preserve it
+        existing_parent = None
+        curr = conn.execute("SELECT parent_session_id FROM sessions WHERE session_id = ?", (session_id,)).fetchone()
+        if curr:
+            existing_parent = curr[0]
 
         # Save to DB
         # 1. Save Session
@@ -335,15 +357,16 @@ def scan(projects_dir=None):
             INSERT OR REPLACE INTO sessions (
                 session_id, project_name, first_timestamp, last_timestamp, git_branch,
                 total_input_tokens, total_output_tokens, total_cache_read, total_cache_creation,
-                model, turn_count, session_title
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                model, turn_count, session_title, parent_session_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             session_meta["session_id"], session_meta["project_name"],
             session_meta["first_timestamp"], session_meta["last_timestamp"],
             session_meta["git_branch"], session_meta["total_input_tokens"],
             session_meta["total_output_tokens"], session_meta["total_cache_read"],
             session_meta["total_cache_creation"], session_meta["model"],
-            session_meta["turn_count"], session_meta["session_title"]
+            session_meta["turn_count"], session_meta["session_title"],
+            existing_parent
         ))
 
         # 2. Save Turns
@@ -361,14 +384,70 @@ def scan(projects_dir=None):
                 turn["tool_name"], turn["cwd"], turn["message_id"]
             ))
 
+        # Save subagents relations
+        for cid in subagent_ids:
+            all_relations.append((session_id, cid))
+
         # 3. Mark file as processed
         line_count = len(turns)
         conn.execute("INSERT OR REPLACE INTO processed_files (path, mtime, lines) VALUES (?, ?, ?)",
                      (filepath_str, mtime, line_count))
 
+    # Apply subagent relations
+    if all_relations:
+        conn.executemany("UPDATE sessions SET parent_session_id = ? WHERE session_id = ?", all_relations)
+        conn.commit()
+
+    # Heuristic resolution for any missing parent links
+    resolve_parent_sessions(conn)
+
     conn.commit()
     conn.close()
     print("Scan complete.")
+
+def resolve_parent_sessions(conn):
+    """Resolve parent_session_id for subagent sessions that don't have one, using heuristics."""
+    # Get all sessions that are subagents (title starts with 'You are' or 'you are') and have no parent_session_id
+    cursor = conn.execute("""
+        SELECT session_id, project_name, first_timestamp, session_title 
+        FROM sessions 
+        WHERE parent_session_id IS NULL 
+          AND (session_title LIKE 'You are%' OR session_title LIKE 'you are%')
+    """)
+    subagents = cursor.fetchall()
+    
+    updates = []
+    for sid, pname, first_ts, title in subagents:
+        # Find the closest preceding parent session (does not start with 'You are' and belongs to the same project)
+        if pname == "Genel Sohbet":
+            parent_cursor = conn.execute("""
+                SELECT session_id 
+                FROM sessions 
+                WHERE first_timestamp <= ? 
+                  AND session_id != ?
+                  AND NOT (session_title LIKE 'You are%' OR session_title LIKE 'you are%')
+                ORDER BY first_timestamp DESC LIMIT 1
+            """, (first_ts, sid))
+        else:
+            parent_cursor = conn.execute("""
+                SELECT session_id 
+                FROM sessions 
+                WHERE project_name = ? 
+                  AND first_timestamp <= ? 
+                  AND session_id != ?
+                  AND NOT (session_title LIKE 'You are%' OR session_title LIKE 'you are%')
+                ORDER BY first_timestamp DESC LIMIT 1
+            """, (pname, first_ts, sid))
+            
+        row = parent_cursor.fetchone()
+        if row:
+            parent_id = row[0]
+            updates.append((parent_id, sid))
+            
+    if updates:
+        conn.executemany("UPDATE sessions SET parent_session_id = ? WHERE session_id = ?", updates)
+        conn.commit()
+        print(f"Heuristically matched {len(updates)} subagent sessions to parents.")
 
 if __name__ == "__main__":
     scan()

@@ -169,7 +169,8 @@ def get_dashboard_data():
             total_cache_creation,
             model,
             turn_count,
-            COALESCE(session_title, 'Yeni Konuşma') as session_title
+            COALESCE(session_title, 'Yeni Konuşma') as session_title,
+            parent_session_id
         FROM sessions
         ORDER BY last_timestamp DESC
     """).fetchall()
@@ -201,6 +202,8 @@ def get_dashboard_data():
 
         sessions_data.append({
             "session_id": r["session_id"][:8],
+            "session_id_full": r["session_id"],
+            "parent_session_id": r["parent_session_id"],
             "project": r["project_name"],
             "title": r["session_title"],
             "branch": r["git_branch"],
@@ -617,6 +620,52 @@ HTML_PAGE = r"""<!DOCTYPE html>
             font-size: 12px;
             color: var(--text-muted);
         }
+
+        .parent-row {
+            cursor: pointer;
+        }
+        .toggle-icon {
+            display: inline-block;
+            width: 16px;
+            margin-right: 6px;
+            color: var(--blue-primary);
+            font-size: 10px;
+            transition: transform 0.2s ease;
+            cursor: pointer;
+            text-align: center;
+        }
+        .toggle-icon.open {
+            transform: rotate(90deg);
+        }
+        .child-row {
+            background-color: rgba(0, 0, 0, 0.2) !important;
+            font-size: 12px;
+        }
+        .child-row td {
+            padding-top: 6px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.01);
+        }
+        .child-indent {
+            padding-left: 24px;
+            position: relative;
+        }
+        .child-indent::before {
+            content: '└─';
+            position: absolute;
+            left: 8px;
+            color: var(--text-muted);
+        }
+        .badge-subagent {
+            background-color: var(--card-border);
+            color: var(--text-muted);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 6px;
+        }
     </style>
 </head>
 <body>
@@ -738,6 +787,31 @@ HTML_PAGE = r"""<!DOCTYPE html>
 </div>
 
 <script>
+    function toggleChildren(parentId, event) {
+        if (event) {
+            event.stopPropagation();
+        }
+        const parentRow = document.querySelector(`.parent-row[data-session-id="${parentId}"]`);
+        if (!parentRow) return;
+        const toggleIcon = parentRow.querySelector('.toggle-icon');
+        const childRows = document.querySelectorAll(`.child-of-${parentId}`);
+        
+        if (childRows.length === 0) return;
+        const isCollapsed = childRows[0].style.display === 'none';
+        
+        childRows.forEach(row => {
+            row.style.display = isCollapsed ? 'table-row' : 'none';
+        });
+        
+        if (toggleIcon) {
+            if (isCollapsed) {
+                toggleIcon.classList.add('open');
+            } else {
+                toggleIcon.classList.remove('open');
+            }
+        }
+    }
+
     let rawData = null;
     let selectedModels = new Set();
     let selectedRange = "30d";
@@ -1054,8 +1128,24 @@ HTML_PAGE = r"""<!DOCTYPE html>
             totalCacheCreation += s.cache_creation;
         });
 
+        // Group and link child sessions to parents
+        const sessionMap = {};
+        rawData.sessions.forEach(s => {
+            s.children = [];
+            sessionMap[s.session_id_full] = s;
+        });
+
+        rawData.sessions.forEach(s => {
+            if (s.parent_session_id && sessionMap[s.parent_session_id]) {
+                sessionMap[s.parent_session_id].children.push(s);
+            }
+        });
+
+        // rootSessions are root sessions or child sessions whose parent is not in the filtered list
+        const rootSessions = filteredSessions.filter(s => !s.parent_session_id || !sessionMap[s.parent_session_id]);
+
         // Set top widgets
-        document.getElementById('stat-sessions').innerText = filteredSessions.length.toLocaleString();
+        document.getElementById('stat-sessions').innerText = rootSessions.length.toLocaleString();
         document.getElementById('stat-turns').innerText = formatNumber(totalTurns);
         document.getElementById('stat-input').innerText = formatNumber(totalInput);
         document.getElementById('stat-output').innerText = formatNumber(totalOutput);
@@ -1063,26 +1153,120 @@ HTML_PAGE = r"""<!DOCTYPE html>
         document.getElementById('stat-cache-creation').innerText = formatNumber(totalCacheCreation);
         document.getElementById('stat-cost').innerText = formatCost(totalCost);
 
+        // Aggregate child values into parent values for display
+        const displaySessions = [];
+        rootSessions.forEach(s => {
+            let aggregatedTurns = s.turns;
+            let aggregatedInput = s.input;
+            let aggregatedOutput = s.output;
+            let aggregatedCacheRead = s.cache_read;
+            let aggregatedCacheCreation = s.cache_creation;
+            let aggregatedCost = s.cost;
+
+            // Find children that match active filters
+            const filteredChildren = (s.children || []).filter(c => {
+                if (!selectedModels.has(c.model)) return false;
+                if (cutoffDate) {
+                    const cDate = new Date(c.last_active_raw + 'T00:00:00');
+                    if (cDate < cutoffDate) return false;
+                }
+                return true;
+            });
+
+            filteredChildren.forEach(c => {
+                aggregatedTurns += c.turns;
+                aggregatedInput += c.input;
+                aggregatedOutput += c.output;
+                aggregatedCacheRead += c.cache_read;
+                aggregatedCacheCreation += c.cache_creation;
+                aggregatedCost += c.cost;
+            });
+
+            displaySessions.push({
+                ...s,
+                children: filteredChildren,
+                displayTurns: aggregatedTurns,
+                displayInput: aggregatedInput,
+                displayOutput: aggregatedOutput,
+                displayCacheRead: aggregatedCacheRead,
+                displayCacheCreation: aggregatedCacheCreation,
+                displayCost: aggregatedCost
+            });
+        });
+
         // Render sessions table
         const tbody = document.getElementById('sessions-table-body');
         tbody.innerHTML = '';
-        filteredSessions.forEach(s => {
+        
+        displaySessions.forEach(s => {
             const tr = document.createElement('tr');
+            tr.className = 'parent-row';
+            tr.setAttribute('data-session-id', s.session_id_full);
+            
+            const hasChildren = s.children && s.children.length > 0;
+            const toggleIconHtml = hasChildren 
+                ? `<span class="toggle-icon">▶</span>` 
+                : '';
+                
             tr.innerHTML = `
                 <td>
-                    <div style="font-weight: 600; color: var(--text-bright); margin-bottom: 2px;">${s.title}</div>
-                    <div class="session-id">${s.session_id}</div>
+                    <div style="display: flex; align-items: flex-start; gap: 4px;">
+                        ${toggleIconHtml}
+                        <div>
+                            <div style="font-weight: 600; color: var(--text-bright); margin-bottom: 2px;">${s.title}</div>
+                            <div class="session-id">${s.session_id}</div>
+                        </div>
+                    </div>
                 </td>
                 <td style="font-weight: 500;">${s.project}</td>
                 <td class="mono">${s.last_active}</td>
                 <td>${s.duration_min} dk</td>
                 <td><span class="model-badge ${getModelBadgeClass(s.model)}">${cleanModelName(s.model)}</span></td>
-                <td>${s.turns}</td>
-                <td class="mono">${formatNumber(s.input)}</td>
-                <td class="mono">${formatNumber(s.output)}</td>
-                <td class="cost-text">${formatCost(s.cost)}</td>
+                <td>${s.displayTurns}</td>
+                <td class="mono">${formatNumber(s.displayInput)}</td>
+                <td class="mono">${formatNumber(s.displayOutput)}</td>
+                <td class="cost-text">${formatCost(s.displayCost)}</td>
             `;
+            
+            if (hasChildren) {
+                tr.onclick = function(e) {
+                    if (e.target.tagName !== 'A' && !e.target.classList.contains('model-badge')) {
+                        toggleChildren(s.session_id_full);
+                    }
+                };
+            }
+            
             tbody.appendChild(tr);
+            
+            // Render child rows (hidden by default)
+            if (hasChildren) {
+                s.children.forEach(c => {
+                    const ctr = document.createElement('tr');
+                    ctr.className = `child-row child-of-${s.session_id_full}`;
+                    ctr.style.display = 'none';
+                    
+                    ctr.innerHTML = `
+                        <td>
+                            <div class="child-indent">
+                                <div style="font-weight: 500; color: var(--text-main); margin-bottom: 2px;">
+                                    ${c.title}
+                                    <span class="badge-subagent">Alt Görev</span>
+                                </div>
+                                <div class="session-id">${c.session_id}</div>
+                            </div>
+                        </td>
+                        <td style="font-weight: 400; color: var(--text-muted);">${c.project}</td>
+                        <td class="mono" style="color: var(--text-muted);">${c.last_active}</td>
+                        <td style="color: var(--text-muted);">${c.duration_min} dk</td>
+                        <td><span class="model-badge ${getModelBadgeClass(c.model)}" style="opacity: 0.7;">${cleanModelName(c.model)}</span></td>
+                        <td style="color: var(--text-muted);">${c.turns}</td>
+                        <td class="mono" style="color: var(--text-muted);">${formatNumber(c.input)}</td>
+                        <td class="mono" style="color: var(--text-muted);">${formatNumber(c.output)}</td>
+                        <td class="cost-text" style="opacity: 0.8;">${formatCost(c.cost)}</td>
+                    `;
+                    tbody.appendChild(ctr);
+                });
+            }
         });
 
         renderCharts(cutoffDate);
