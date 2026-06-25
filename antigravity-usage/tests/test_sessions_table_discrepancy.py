@@ -53,8 +53,13 @@ def custom_test_env(tmp_path):
     conn.commit()
     conn.close()
     
+    # Create empty brain directory so auto-scan finds nothing and doesn't pollute database
+    temp_brain_dir = tmp_path / "brain"
+    temp_brain_dir.mkdir(exist_ok=True)
+    
     env = os.environ.copy()
     env["ANTIGRAVITY_DB_PATH"] = str(temp_db_path)
+    env["ANTIGRAVITY_BRAIN_DIR"] = str(temp_brain_dir)
     env["BROWSER"] = "true"
     
     return {
@@ -66,18 +71,19 @@ def custom_test_env(tmp_path):
 def custom_dashboard_server(custom_test_env):
     env = custom_test_env["env"]
     port = get_free_port()
-    
+    print("test_env ANTIGRAVITY_DB_PATH in python env:", env.get("ANTIGRAVITY_DB_PATH"))
     cmd = [
         sys.executable,
         "-c",
-        f"import sys; sys.path.insert(0, '{PROJECT_ROOT}'); import dashboard; dashboard.run_server({port})"
+        f"import os; print('SUBPROCESS DB_PATH:', os.environ.get('ANTIGRAVITY_DB_PATH')); import sys; sys.path.insert(0, '{PROJECT_ROOT}'); import dashboard; dashboard.run_server({port})"
     ]
     
     proc = subprocess.Popen(
         cmd,
         env=env,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        stderr=subprocess.PIPE,
+        text=True
     )
     
     base_url = f"http://localhost:{port}"
@@ -97,7 +103,7 @@ def custom_dashboard_server(custom_test_env):
         proc.terminate()
         proc.wait()
         stdout, stderr = proc.communicate()
-        raise RuntimeError(f"Server start failed.\nstdout: {stdout.decode()}\nstderr: {stderr.decode()}")
+        raise RuntimeError(f"Server start failed.\nstdout: {stdout}\nstderr: {stderr}")
         
     yield base_url
     
