@@ -1,0 +1,2 @@
+## 2026-06-16T22:26:59Z
+Investigate the codebase of the 'Akıllı Organizasyon' project to find details about the Data and RAG infrastructure. Locate the files relating to database (Postgres, pgvector activation/state), knowledge base (RAG indexing, prompt enrichment), and data lineage tracking. Identify current implementations, potential gaps, and exact file paths for these modules. Save your report to your folder '.agents/explorer_palantir_1/analysis.md' and report back.

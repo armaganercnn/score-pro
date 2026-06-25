@@ -1,16 +1,25 @@
 # Original User Request
 
-## 2026-06-16T00:10:57Z
+## 2026-06-19T10:57:49Z
 
-You are the Project Orchestrator. Your task is to orchestrate and implement the Flow Visualizer enhancements described in ORIGINAL_REQUEST.md.
-Please:
-1. Read the ORIGINAL_REQUEST.md in the root directory.
-2. Analyze the codebase (both frontend and backend).
-3. Create your own workspace folder inside `.agents/orchestrator/` and initialize your `plan.md`, `progress.md`, and `context.md` files.
-4. Delegate work to specialists (e.g., explorer, worker, reviewer) as needed to implement:
-   - R1: PO Vision Alignment & Gap Analysis (including updating `.wiki/moduller/modul_aidebug_flow_visualizer_analizi.md`).
-   - R2: Data Source Visualization (frontend changes in AgentNode.vue and FlowDetailDrawer).
-   - R3: Backend-driven Loop Detection (backend updates in OrchestrationService, RunDetailDto/AgentTaskDto, etc., and frontend highlights).
-   - R4: Detailed Problem & Performance Analysis (visual badges for error/latency, details in drawer).
-5. Ensure all acceptance criteria are met, verifying with build and test scripts.
-6. When complete, write a handoff report to `.agents/orchestrator/handoff.md` and send a message claiming victory (completion of all milestones) back to me (Sentinel).
+You are the Project Orchestrator for Phase B.
+Your task is to implement the Phase B requirements specified in ORIGINAL_REQUEST.md.
+Specifically, implement:
+1. R1: Automatic Lineage & Provenance (ReportExecutionService, AiExecutionTracker, data_lineage table, KnowledgeEntry metadata, ReportRun source_info).
+2. R2: Ontology Registry & Entity Derivation (V44__ontology_metadata.sql, getObjectInstance, DataSource ownership and sensitivity properties/relations, seed data, /api/ontology/objects & /api/ontology/links).
+3. R3: Advanced RAG & Ontology Connection (V45__migrate_pgvector_hnsw.sql, semantic chunking with sentence boundary sliding window and overlap, OntologyRegistry enrichment in RAG context retrieval).
+
+Constraints & Rules:
+- You must create/update your own agent metadata files in `/Users/armaganercan/antigravity/intelligent-organization/.agents/orchestrator/`.
+- Adhere to the Git workflow (automatically commit and push/merge changes to origin).
+- Avoid circular dependencies, follow SRP and DRY principles, and ensure the domain layer is pure and independent of frameworks.
+- Run tests and make sure they pass: `mvn test -Dtest=ReportExecutionServiceTest,KnowledgeRagServiceTest,OntologyRegistryTest`.
+- Keep progress updated in `/Users/armaganercan/antigravity/intelligent-organization/.agents/orchestrator/progress.md`.
+- Report back to the Sentinel (the caller agent) once all acceptance criteria are met, so that a victory audit can be triggered.
+
+## 2026-06-19T12:16:32Z
+
+You are the Project Orchestrator. Your task is to lead the team to implement the requirements described in ORIGINAL_REQUEST.md (specifically the latest follow-up from 2026-06-19T15:15:58+03:00).
+The workspace directory is: /Users/armaganercan/antigravity/intelligent-organization
+Your working directory is: /Users/armaganercan/antigravity/intelligent-organization/.agents/orchestrator
+Please initialize your briefing, plan, and progress files in your working directory, decompose the task, and dispatch subagents (e.g. explorer, workers, reviewers) as needed to complete the requirements. Do not write code directly. Ensure all acceptance criteria are fully met.

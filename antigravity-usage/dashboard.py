@@ -666,6 +666,65 @@ HTML_PAGE = r"""<!DOCTYPE html>
             text-transform: uppercase;
             margin-left: 6px;
         }
+        
+        /* Tooltip & Info icon styles */
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background-color: var(--card-border);
+            color: var(--text-muted);
+            font-size: 9px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 6px;
+            position: relative;
+            vertical-align: middle;
+        }
+        .info-icon:hover {
+            background-color: var(--blue-primary);
+            color: var(--bg);
+        }
+        .info-icon .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #151b2c;
+            color: var(--text-main);
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 130%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 11px;
+            font-weight: normal;
+            line-height: 1.4;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            white-space: normal;
+            pointer-events: none;
+        }
+        .info-icon .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: var(--card-border) transparent transparent transparent;
+        }
+        .info-icon:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -702,37 +761,37 @@ HTML_PAGE = r"""<!DOCTYPE html>
 <div class="container">
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="label">Oturumlar</div>
+            <div class="label">Oturumlar<span class="info-icon">i<span class="tooltip-text">Yapay zeka ile başlatılan bağımsız ana sohbet oturumlarının toplam sayısı.</span></span></div>
             <div class="value" id="stat-sessions">0</div>
             <div class="subtext range-subtext">son 30 gün</div>
         </div>
         <div class="stat-card">
-            <div class="label">Dönüşler</div>
+            <div class="label">Dönüşler<span class="info-icon">i<span class="tooltip-text">Kullanıcı isteği ve asistan yanıtı çiftlerinin (mesajlaşmaların) toplam sayısı.</span></span></div>
             <div class="value" id="stat-turns">0</div>
             <div class="subtext range-subtext">son 30 gün</div>
         </div>
         <div class="stat-card">
-            <div class="label">Giriş Tokenleri</div>
+            <div class="label">Giriş Tokenleri<span class="info-icon">i<span class="tooltip-text">Asistana gönderilen toplam kelime/karakter girdi birimi (prompt tokens).</span></span></div>
             <div class="value mono" id="stat-input">0</div>
             <div class="subtext range-subtext">son 30 gün</div>
         </div>
         <div class="stat-card">
-            <div class="label">Çıkış Tokenleri</div>
+            <div class="label">Çıkış Tokenleri<span class="info-icon">i<span class="tooltip-text">Asistanın ürettiği toplam kelime/karakter çıktı birimi (completion tokens).</span></span></div>
             <div class="value mono" id="stat-output">0</div>
             <div class="subtext range-subtext">son 30 gün</div>
         </div>
         <div class="stat-card">
-            <div class="label">Önbellek Okuma</div>
+            <div class="label">Önbellek Okuma<span class="info-icon">i<span class="tooltip-text">Önbelleğe alınmış bağlamlardan (context caching) okunan ve tekrar faturalandırılmayan/indirimli tokenler.</span></span></div>
             <div class="value mono" id="stat-cache-read">0</div>
             <div class="subtext">istek önbelleğinden</div>
         </div>
         <div class="stat-card">
-            <div class="label">Önbellek Yazma</div>
+            <div class="label">Önbellek Yazma<span class="info-icon">i<span class="tooltip-text">Önbelleğe ilk kez yazılan ve sonraki dönüşlerde okunabilecek bağlam tokenleri.</span></span></div>
             <div class="value mono" id="stat-cache-creation">0</div>
             <div class="subtext">istek önbelleğine yazma</div>
         </div>
         <div class="stat-card">
-            <div class="label">Tahmini Maliyet</div>
+            <div class="label">Tahmini Maliyet<span class="info-icon">i<span class="tooltip-text">Model fiyatlandırma tarifelerine göre hesaplanmış yaklaşık toplam USD maliyeti.</span></span></div>
             <div class="value cost-text" id="stat-cost">$0.00</div>
             <div class="subtext">API fiyatlandırması</div>
         </div>
@@ -740,7 +799,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
     <!-- Daily Usage Chart (Full Width) -->
     <div class="chart-card full-width">
-        <h2 id="daily-chart-title">Günlük Token Kullanımı — Son 30 Gün</h2>
+        <h2 id="daily-chart-title">Günlük Token Kullanımı — Son 30 Gün<span class="info-icon">i<span class="tooltip-text">Modeller bazında günlük harcanan toplam token sayısı.</span></span></h2>
         <div class="chart-container-large">
             <canvas id="chart-daily"></canvas>
         </div>
@@ -749,34 +808,75 @@ HTML_PAGE = r"""<!DOCTYPE html>
     <!-- Bottom Charts Row (Doughnut + Horizontal Bar) -->
     <div class="charts-grid">
         <div class="chart-card">
-            <h2>Modellere Göre Dağılım</h2>
+            <h2>Modellere Göre Dağılım<span class="info-icon">i<span class="tooltip-text">Seçilen zaman diliminde kullanılan modellerin toplam token payları.</span></span></h2>
             <div class="chart-container-medium">
                 <canvas id="chart-pie"></canvas>
             </div>
         </div>
         <div class="chart-card">
-            <h2>Token Kullanımına Göre En İyi Projeler</h2>
+            <h2>Token Kullanımına Göre En İyi Projeler<span class="info-icon">i<span class="tooltip-text">Toplam en çok token harcayan ilk 10 projenin girdi ve çıktı dağılımı.</span></span></h2>
             <div class="chart-container-medium">
                 <canvas id="chart-projects"></canvas>
             </div>
         </div>
     </div>
 
+    <!-- Benchmark Grid -->
+    <div class="charts-grid" style="margin-top: 20px; margin-bottom: 20px;">
+        <div class="table-card" style="margin-bottom: 0;">
+            <h2>Modeller Benchmark Analizi<span class="info-icon">i<span class="tooltip-text">Kullanılan yapay zeka modellerinin performans, maliyet ve verimlilik karşılaştırması.</span></span></h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Dönüş</th>
+                        <th>Ort. Giriş</th>
+                        <th>Ort. Çıkış</th>
+                        <th>Önbellek Verimliliği<span class="info-icon">i<span class="tooltip-text">Girdi tokenlerinin yüzde kaçının önbellekten (ücretsiz/indirimli) okunduğunu gösterir.</span></span></th>
+                        <th>Ort. Dönüş Maliyeti</th>
+                        <th>Toplam Maliyet</th>
+                    </tr>
+                </thead>
+                <tbody id="benchmark-models-body">
+                    <!-- Dynamic benchmark rows -->
+                </tbody>
+            </table>
+        </div>
+        <div class="table-card" style="margin-bottom: 0;">
+            <h2>Projeler Benchmark Analizi<span class="info-icon">i<span class="tooltip-text">Geliştirilen projelerin harcanan efor, model maliyeti ve önbellek verimliliği kıyaslaması.</span></span></h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Proje</th>
+                        <th>Oturum</th>
+                        <th>Dönüş</th>
+                        <th>Önbellek Verimliliği<span class="info-icon">i<span class="tooltip-text">Girdi tokenlerinin yüzde kaçının önbellekten (ücretsiz/indirimli) okunduğunu gösterir.</span></span></th>
+                        <th>Ort. Dönüş Maliyeti</th>
+                        <th>Toplam Maliyet</th>
+                    </tr>
+                </thead>
+                <tbody id="benchmark-projects-body">
+                    <!-- Dynamic benchmark rows -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Sessions Table -->
     <div class="table-card">
-        <h2>Son Oturumlar (Sessions)</h2>
+        <h2>Son Oturumlar (Sessions)<span class="info-icon">i<span class="tooltip-text">Yakın zamanda gerçekleştirilen geliştirme oturumlarının listesi ve detayları.</span></span></h2>
         <table>
             <thead>
                 <tr>
-                    <th>Oturum</th>
-                    <th>Proje</th>
-                    <th>Son Aktif</th>
-                    <th>Süre</th>
-                    <th>Model</th>
-                    <th>Dönüş</th>
-                    <th>Giriş</th>
-                    <th>Çıkış</th>
-                    <th>Tahmini Maliyet</th>
+                    <th>Oturum<span class="info-icon">i<span class="tooltip-text">Sohbetin başlığı ve benzersiz kimliği (ID).</span></span></th>
+                    <th>Proje<span class="info-icon">i<span class="tooltip-text">Sohbet esnasında çalışılan ve tespit edilen proje dizini.</span></span></th>
+                    <th>Son Aktif<span class="info-icon">i<span class="tooltip-text">Sohbetin en son güncellendiği tarih ve saat.</span></span></th>
+                    <th>Süre<span class="info-icon">i<span class="tooltip-text">Sohbetin ilk mesajı ile son mesajı arasında geçen toplam süre.</span></span></th>
+                    <th>Model<span class="info-icon">i<span class="tooltip-text">Sohbet içerisinde kullanılan LLM modeli.</span></span></th>
+                    <th>Dönüş<span class="info-icon">i<span class="tooltip-text">Sohbet içerisindeki toplam asistan yanıtı sayısı.</span></span></th>
+                    <th>Giriş<span class="info-icon">i<span class="tooltip-text">Bu sohbette harcanan toplam girdi tokenleri.</span></span></th>
+                    <th>Çıkış<span class="info-icon">i<span class="tooltip-text">Bu sohbette üretilen toplam çıktı tokenleri.</span></span></th>
+                    <th>Tahmini Maliyet<span class="info-icon">i<span class="tooltip-text">Sohbetin girdileri ve çıktıları doğrultusunda tahmini toplam maliyeti.</span></span></th>
                 </tr>
             </thead>
             <tbody id="sessions-table-body">
@@ -1208,12 +1308,13 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 ? `<span class="toggle-icon">▶</span>` 
                 : '';
                 
+            const displayTitle = s.title.length > 60 ? s.title.substring(0, 57) + '...' : s.title;
             tr.innerHTML = `
                 <td>
                     <div style="display: flex; align-items: flex-start; gap: 4px;">
                         ${toggleIconHtml}
                         <div>
-                            <div style="font-weight: 600; color: var(--text-bright); margin-bottom: 2px;">${s.title}</div>
+                            <div title="${s.title}" style="font-weight: 600; color: var(--text-bright); margin-bottom: 2px; cursor: help;">${displayTitle}</div>
                             <div class="session-id">${s.session_id}</div>
                         </div>
                     </div>
@@ -1245,11 +1346,12 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     ctr.className = `child-row child-of-${s.session_id_full}`;
                     ctr.style.display = 'none';
                     
+                    const displayChildTitle = c.title.length > 60 ? c.title.substring(0, 57) + '...' : c.title;
                     ctr.innerHTML = `
                         <td>
                             <div class="child-indent">
-                                <div style="font-weight: 500; color: var(--text-main); margin-bottom: 2px;">
-                                    ${c.title}
+                                <div title="${c.title}" style="font-weight: 500; color: var(--text-main); margin-bottom: 2px; cursor: help;">
+                                    ${displayChildTitle}
                                     <span class="badge-subagent">Alt Görev</span>
                                 </div>
                                 <div class="session-id">${c.session_id}</div>
@@ -1267,6 +1369,78 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     tbody.appendChild(ctr);
                 });
             }
+        });
+
+        // 1. Model Benchmark Calculation
+        const modelBenchmark = {};
+        filteredSessions.forEach(s => {
+            const m = s.model;
+            if (!modelBenchmark[m]) {
+                modelBenchmark[m] = { turns: 0, input: 0, output: 0, cache_read: 0, cost: 0 };
+            }
+            modelBenchmark[m].turns += s.turns;
+            modelBenchmark[m].input += s.input;
+            modelBenchmark[m].output += s.output;
+            modelBenchmark[m].cache_read += s.cache_read;
+            modelBenchmark[m].cost += s.cost;
+        });
+
+        const benchmarkModelsBody = document.getElementById('benchmark-models-body');
+        benchmarkModelsBody.innerHTML = '';
+        Object.entries(modelBenchmark).sort((a, b) => b[1].cost - a[1].cost).forEach(([model, data]) => {
+            const tr = document.createElement('tr');
+            const cacheHitRate = data.input + data.cache_read > 0 
+                ? ((data.cache_read / (data.input + data.cache_read)) * 100).toFixed(1) + '%' 
+                : '0%';
+            const avgInput = data.turns > 0 ? formatNumber(Math.round(data.input / data.turns)) : '0';
+            const avgOutput = data.turns > 0 ? formatNumber(Math.round(data.output / data.turns)) : '0';
+            const avgCost = data.turns > 0 ? formatCost(data.cost / data.turns) : '$0.0000';
+            
+            tr.innerHTML = `
+                <td><span class="model-badge ${getModelBadgeClass(model)}">${cleanModelName(model)}</span></td>
+                <td>${data.turns}</td>
+                <td class="mono">${avgInput}</td>
+                <td class="mono">${avgOutput}</td>
+                <td class="mono" style="color: var(--color-cache-read); font-weight: 500;">${cacheHitRate}</td>
+                <td class="cost-text">${avgCost}</td>
+                <td class="cost-text" style="font-weight: 600;">${formatCost(data.cost)}</td>
+            `;
+            benchmarkModelsBody.appendChild(tr);
+        });
+
+        // 2. Project Benchmark Calculation
+        const projectBenchmark = {};
+        filteredSessions.forEach(s => {
+            const p = s.project || 'unknown';
+            if (!projectBenchmark[p]) {
+                projectBenchmark[p] = { sessions: 0, turns: 0, input: 0, output: 0, cache_read: 0, cost: 0 };
+            }
+            projectBenchmark[p].sessions += 1;
+            projectBenchmark[p].turns += s.turns;
+            projectBenchmark[p].input += s.input;
+            projectBenchmark[p].output += s.output;
+            projectBenchmark[p].cache_read += s.cache_read;
+            projectBenchmark[p].cost += s.cost;
+        });
+
+        const benchmarkProjectsBody = document.getElementById('benchmark-projects-body');
+        benchmarkProjectsBody.innerHTML = '';
+        Object.entries(projectBenchmark).sort((a, b) => b[1].cost - a[1].cost).forEach(([project, data]) => {
+            const tr = document.createElement('tr');
+            const cacheHitRate = data.input + data.cache_read > 0 
+                ? ((data.cache_read / (data.input + data.cache_read)) * 100).toFixed(1) + '%' 
+                : '0%';
+            const avgCost = data.turns > 0 ? formatCost(data.cost / data.turns) : '$0.0000';
+            
+            tr.innerHTML = `
+                <td style="font-weight: 600; color: var(--text-bright);">${project}</td>
+                <td>${data.sessions}</td>
+                <td>${data.turns}</td>
+                <td class="mono" style="color: var(--color-cache-read); font-weight: 500;">${cacheHitRate}</td>
+                <td class="cost-text">${avgCost}</td>
+                <td class="cost-text" style="font-weight: 600;">${formatCost(data.cost)}</td>
+            `;
+            benchmarkProjectsBody.appendChild(tr);
         });
 
         renderCharts(cutoffDate);

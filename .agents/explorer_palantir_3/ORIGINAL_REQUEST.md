@@ -1,0 +1,2 @@
+## 2026-06-16T22:26:59Z
+Investigate the codebase of the 'Akıllı Organizasyon' project to find details about UI dashboard stats/metrics APIs, frontend components (check for monolithic files, design patterns), and frontend testing setup (ESLint/Prettier, unit tests, E2E tests). Identify current implementations, potential gaps, and exact file paths. Save your report to '.agents/explorer_palantir_3/analysis.md' and report back.

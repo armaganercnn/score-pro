@@ -1,0 +1,353 @@
+diff --git a/backend/src/main/java/com/akilliorganizasyon/chatbot/domain/ActionType.java b/backend/src/main/java/com/akilliorganizasyon/chatbot/domain/ActionType.java
+index bca5361..8cd7521 100644
+--- a/backend/src/main/java/com/akilliorganizasyon/chatbot/domain/ActionType.java
++++ b/backend/src/main/java/com/akilliorganizasyon/chatbot/domain/ActionType.java
+@@ -6,10 +6,52 @@
+  * explicit typed executors.
+  */
+ public enum ActionType {
+-    REPORT_REQUEST,
+-    ACCESS_REQUEST,
+-    TASK_CREATE,
+-    AGENT_TASK,
+-    NOTIFY
++    REPORT_REQUEST(
++        "{\"type\":\"object\",\"properties\":{\"reportId\":{\"type\":\"string\"},\"parameters\":{\"type\":\"object\"}},\"required\":[\"reportId\"]}",
++        "ACTION",
++        "REPORT_REQUEST",
++        "EXECUTE"
++    ),
++    ACCESS_REQUEST(
++        "{\"type\":\"object\",\"properties\":{\"resource\":{\"type\":\"string\"},\"role\":{\"type\":\"string\"}},\"required\":[\"resource\"]}",
++        "ACTION",
++        "ACCESS_REQUEST",
++        "EXECUTE"
++    ),
++    TASK_CREATE(
++        "{\"type\":\"object\",\"properties\":{\"title\":{\"type\":\"string\"},\"description\":{\"type\":\"string\"},\"priority\":{\"type\":\"string\"},\"dueDate\":{\"type\":\"string\"}},\"required\":[\"title\"]}",
++        "ACTION",
++        "TASK_CREATE",
++        "EXECUTE"
++    ),
++    AGENT_TASK(
++        "{\"type\":\"object\",\"properties\":{\"agentId\":{\"type\":\"string\"},\"prompt\":{\"type\":\"string\"}},\"required\":[\"agentId\",\"prompt\"]}",
++        "ACTION",
++        "AGENT_TASK",
++        "EXECUTE"
++    ),
++    NOTIFY(
++        "{\"type\":\"object\",\"properties\":{\"message\":{\"type\":\"string\"},\"target\":{\"type\":\"string\"}},\"required\":[\"message\"]}",
++        "ACTION",
++        "NOTIFY",
++        "EXECUTE"
++    );
++
++    private final String parameterSchema;
++    private final String requiredCapabilityType;
++    private final String requiredCapabilityTarget;
++    private final String requiredCapabilityAction;
++
++    ActionType(String parameterSchema, String requiredCapabilityType, String requiredCapabilityTarget, String requiredCapabilityAction) {
++        this.parameterSchema = parameterSchema;
++        this.requiredCapabilityType = requiredCapabilityType;
++        this.requiredCapabilityTarget = requiredCapabilityTarget;
++        this.requiredCapabilityAction = requiredCapabilityAction;
++    }
++
++    public String getParameterSchema() { return parameterSchema; }
++    public String getRequiredCapabilityType() { return requiredCapabilityType; }
++    public String getRequiredCapabilityTarget() { return requiredCapabilityTarget; }
++    public String getRequiredCapabilityAction() { return requiredCapabilityAction; }
+ }
+diff --git a/backend/src/main/java/com/akilliorganizasyon/chatbot/domain/ChatAction.java b/backend/src/main/java/com/akilliorganizasyon/chatbot/domain/ChatAction.java
+index 102c48d..ad0b561 100644
+--- a/backend/src/main/java/com/akilliorganizasyon/chatbot/domain/ChatAction.java
++++ b/backend/src/main/java/com/akilliorganizasyon/chatbot/domain/ChatAction.java
+@@ -47,4 +47,20 @@ public class ChatAction extends BaseEntity {
+     @Column(name = "requires_approval", nullable = false)
+     private boolean requiresApproval = false;
++
++    public String getParameterSchema() {
++        return actionType != null ? actionType.getParameterSchema() : null;
++    }
++
++    public String getRequiredCapabilityType() {
++        return actionType != null ? actionType.getRequiredCapabilityType() : null;
++    }
++
++    public String getRequiredCapabilityTarget() {
++        return actionType != null ? actionType.getRequiredCapabilityTarget() : null;
++    }
++
++    public String getRequiredCapabilityAction() {
++        return actionType != null ? actionType.getRequiredCapabilityAction() : null;
++    }
+ }
+diff --git a/backend/src/main/java/com/akilliorganizasyon/chatbot/service/ActionIntentService.java b/backend/src/main/java/com/akilliorganizasyon/chatbot/service/ActionIntentService.java
+index e8df121..7d8d212 100644
+--- a/backend/src/main/java/com/akilliorganizasyon/chatbot/service/ActionIntentService.java
++++ b/backend/src/main/java/com/akilliorganizasyon/chatbot/service/ActionIntentService.java
+@@ -3,11 +3,13 @@ package com.akilliorganizasyon.chatbot.service;
+ import com.akilliorganizasyon.chatbot.domain.ActionStatus;
+ import com.akilliorganizasyon.chatbot.domain.ActionType;
+ import com.akilliorganizasyon.chatbot.domain.ChatAction;
+ import com.akilliorganizasyon.chatbot.repository.ChatActionRepository;
++import com.akilliorganizasyon.shared.ai.AiChatService;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import lombok.extern.slf4j.Slf4j;
+ import org.springframework.stereotype.Service;
+ 
+ import java.util.LinkedHashMap;
+-import java.util.List;
+-import java.util.Locale;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Set;
+@@ -17,29 +19,17 @@ import java.util.UUID;
+-/**
+- * Heuristic, keyword-based intent detection. Maps phrases in the user message to
+- * a {@link ActionType} and PROPOSES a {@link ChatAction}. It never calls other
+- * modules: it only records the proposed action and its payload.
+- *
+- * <p>High-impact actions ({@link #HIGH_IMPACT}) are flagged
+- * {@code requiresApproval = true} and must not auto-execute.
+- */
++@Slf4j
+ @Service
+ public class ActionIntentService {
+ 
+-    /** Ordered so the first matching, most-specific intent wins. */
+-    private static final List<IntentRule> RULES = List.of(
+-            new IntentRule(ActionType.ACCESS_REQUEST,
+-                    List.of("yetki", "erişim", "erisim", "izin iste", "rol talep", "access", "permission", "grant access")),
+-            new IntentRule(ActionType.AGENT_TASK,
+-                    List.of("ajan", "otonom", "agent", "autonomous", "background task")),
+-            new IntentRule(ActionType.REPORT_REQUEST,
+-                    List.of("rapor", "report", "analiz çıkar", "analiz cikar", "dashboard", "özet rapor")),
+-            new IntentRule(ActionType.TASK_CREATE,
+-                    List.of("görev oluştur", "gorev olustur", "görev aç", "task create", "create task", "yapılacak", "yapilacak", "todo", "to-do")),
+-            new IntentRule(ActionType.NOTIFY,
+-                    List.of("hatırlat", "hatirlat", "bildir", "bildirim gönder", "notify", "remind", "send notification"))
+-    );
+-
+     private static final Set<ActionType> HIGH_IMPACT =
+             Set.of(ActionType.ACCESS_REQUEST);
+ 
+     private final ChatActionRepository chatActionRepository;
++    private final AiChatService aiChatService;
++    private final ObjectMapper objectMapper;
+ 
+-    public ActionIntentService(ChatActionRepository chatActionRepository) {
++    public ActionIntentService(ChatActionRepository chatActionRepository,
++                               AiChatService aiChatService,
++                               ObjectMapper objectMapper) {
+         this.chatActionRepository = chatActionRepository;
++        this.aiChatService = aiChatService;
++        this.objectMapper = objectMapper;
+     }
+ 
+     /**
+-     * Detects an intent in the user content and, when found, persists a PROPOSED
+-     * action. Returns the saved action or empty when no intent matched.
++     * Detects intent in the user content using LLM (Spring AI) and, when found, persists
++     * a PROPOSED action. Returns the saved action or empty when no intent matched.
++     * Heuristic keyword-based matching is fully removed.
+      */
+     public Optional<ChatAction> detectAndPropose(UUID conversationId, UUID messageId, String userContent) {
+         if (userContent == null || userContent.isBlank()) {
+             return Optional.empty();
+         }
+-        String lower = userContent.toLowerCase(Locale.ROOT);
+-
+-        for (IntentRule rule : RULES) {
+-            Optional<String> hit = rule.keywords().stream().filter(lower::contains).findFirst();
+-            if (hit.isPresent()) {
+-                ChatAction action = new ChatAction();
+-                action.setConversationId(conversationId);
+-                action.setMessageId(messageId);
+-                action.setActionType(rule.type());
+-                action.setStatus(ActionStatus.PROPOSED);
+-                action.setRequiresApproval(HIGH_IMPACT.contains(rule.type()));
+-
+-                Map<String, Object> payload = new LinkedHashMap<>();
+-                payload.put("source", "intent-heuristic");
+-                payload.put("matchedKeyword", hit.get());
+-                payload.put("snippet", snippet(userContent));
+-                payload.put("note", noteFor(rule.type()));
+-                if (rule.type() == ActionType.TASK_CREATE) {
+-                    payload.put("task", Map.of(
+-                            "title", taskTitle(userContent, hit.get()),
+-                            "description", snippet(userContent),
+-                            "priority", "MEDIUM"));
+-                }
+-                action.setPayload(payload);
+-
+-                return Optional.of(chatActionRepository.save(action));
+-            }
++        if (!aiChatService.isEnabled()) {
++            log.warn("AiChatService is disabled; skipping intent detection.");
++            return Optional.empty();
+         }
+-        return Optional.empty();
++
++        try {
++            StringBuilder actionInfo = new StringBuilder();
++            for (ActionType type : ActionType.values()) {
++                actionInfo.append("- ").append(type.name())
++                        .append("\n  Parameter Schema: ").append(type.getParameterSchema())
++                        .append("\n");
++            }
++
++            String systemPrompt = """
++                You are a highly accurate intent detection assistant. Analyze the user's message and determine if it represents a request to perform one of the following system actions:
++                
++                [AVAILABLE ACTIONS]
++                %s
++                
++                Your objective is to:
++                1. Detect if the user's request maps to one of the ActionTypes listed above.
++                2. If it maps, extract the parameter values from the user's message conforming exactly to the parameters JSON schema of that action.
++                
++                Respond ONLY with a JSON object in the following format:
++                {
++                  "matched": true,
++                  "actionType": "ACTION_TYPE_NAME",
++                  "payload": { ... extracted fields ... }
++                }
++                
++                If no action is requested, respond ONLY with:
++                {
++                  "matched": false
++                }
++                
++                Rules:
++                - Do not make up parameter values. Only extract what is present or clearly implied.
++                - For dates (like task dueDate), parse them relative to current time 2026-06-19T15:20:46+03:00. Output ISO-8601 strings (e.g., 2026-06-08T09:00:00Z).
++                - For TASK_CREATE priority, map it to LOW, MEDIUM, or HIGH, defaulting to MEDIUM.
++                - Output MUST be a single raw JSON object. Do not include markdown code blocks like ```json ... ``` or any explanatory notes.
++                """.formatted(actionInfo.toString());
++
++            String response = aiChatService.complete(systemPrompt, userContent);
++            if (response == null || response.isBlank()) {
++                return Optional.empty();
++            }
++
++            String json = response.trim();
++            if (json.startsWith("```")) {
++                int firstNewLine = json.indexOf('\n');
++                int lastBackticks = json.lastIndexOf("```");
++                if (firstNewLine != -1 && lastBackticks > firstNewLine) {
++                    json = json.substring(firstNewLine, lastBackticks).trim();
++                }
++            }
++            if (json.startsWith("json")) {
++                json = json.substring(4).trim();
++            }
++
++            IntentResult result = objectMapper.readValue(json, IntentResult.class);
++            if (result == null || !result.matched() || result.actionType() == null) {
++                return Optional.empty();
++            }
++
++            ChatAction action = new ChatAction();
++            action.setConversationId(conversationId);
++            action.setMessageId(messageId);
++            action.setActionType(result.actionType());
++            action.setStatus(ActionStatus.PROPOSED);
++            action.setRequiresApproval(HIGH_IMPACT.contains(result.actionType()));
++
++            Map<String, Object> payload = new LinkedHashMap<>();
++            payload.put("source", "intent-llm");
++            payload.put("snippet", snippet(userContent));
++            payload.put("note", noteFor(result.actionType()));
++
++            if (result.payload() != null) {
++                if (result.actionType() == ActionType.TASK_CREATE) {
++                    Map<String, Object> taskMap = new LinkedHashMap<>();
++                    Object titleObj = result.payload().get("title");
++                    if (titleObj == null) {
++                        titleObj = result.payload().get("taskTitle");
++                    }
++                    taskMap.put("title", titleObj != null ? titleObj.toString() : snippet(userContent));
++                    taskMap.put("description", result.payload().getOrDefault("description", snippet(userContent)));
++                    taskMap.put("priority", result.payload().getOrDefault("priority", "MEDIUM"));
++                    if (result.payload().containsKey("dueDate")) {
++                        taskMap.put("dueDate", result.payload().get("dueDate"));
++                    }
++                    if (result.payload().containsKey("assigneeId")) {
++                        taskMap.put("assigneeId", result.payload().get("assigneeId"));
++                    }
++                    payload.put("task", taskMap);
++                } else {
++                    payload.putAll(result.payload());
++                }
++            }
++
++            action.setPayload(payload);
++            return Optional.of(chatActionRepository.save(action));
++
++        } catch (Exception e) {
++            log.error("Failed to detect intent using LLM", e);
++            return Optional.empty();
++        }
+     }
+ 
+     private String snippet(String content) {
+@@ -51,33 +133,13 @@ public class ActionIntentService {
+-    private String taskTitle(String content, String matchedKeyword) {
+-        String trimmed = content.trim();
+-        String lower = trimmed.toLowerCase(Locale.ROOT);
+-        int keywordIndex = lower.indexOf(matchedKeyword.toLowerCase(Locale.ROOT));
+-        if (keywordIndex >= 0) {
+-            String candidate = trimmed.substring(keywordIndex + matchedKeyword.length())
+-                    .replaceFirst("^[\\s:;,.\\-]+", "")
+-                    .trim();
+-            if (!candidate.isBlank()) {
+-                return limitTitle(candidate);
+-            }
+-        }
+-        return limitTitle(snippet(content));
+-    }
+-
+-    private String limitTitle(String value) {
+-        return value.length() > 255 ? value.substring(0, 255) : value;
+-    }
+-
+     private String noteFor(ActionType type) {
+         if (type == ActionType.TASK_CREATE) {
+             return "Önerilen görev oluşturma aksiyonu — onaylanırsa güvenli görev kaydı açılır.";
+         }
+         return "Önerilen aksiyon — başka modüller otomatik çağrılmaz.";
+     }
+-
+-    private record IntentRule(ActionType type, List<String> keywords) {
+-    }
++
++    private record IntentResult(
++            boolean matched,
++            ActionType actionType,
++            Map<String, Object> payload
++    ) {}
+ }
+diff --git a/backend/src/test/java/com/akilliorganizasyon/chatbot/service/ChatActionServiceTest.java b/backend/src/test/java/com/akilliorganizasyon/chatbot/service/ChatActionServiceTest.java
+index 1ba2d31..da679ea 100644
+--- a/backend/src/test/java/com/akilliorganizasyon/chatbot/service/ChatActionServiceTest.java
++++ b/backend/src/test/java/com/akilliorganizasyon/chatbot/service/ChatActionServiceTest.java
+@@ -161,8 +161,15 @@ class ChatActionServiceTest {
+     @Test
+     void intentDetectionAddsConservativeTaskPayload() {
+         ChatActionRepository repository = mock(ChatActionRepository.class);
+         when(repository.save(any(ChatAction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+-        ActionIntentService service = new ActionIntentService(repository);
++        com.akilliorganizasyon.shared.ai.AiChatService aiChatService = mock(com.akilliorganizasyon.shared.ai.AiChatService.class);
++        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
++
++        when(aiChatService.isEnabled()).thenReturn(true);
++        when(aiChatService.complete(any(), any())).thenReturn(
++            "{\"matched\":true,\"actionType\":\"TASK_CREATE\",\"payload\":{\"title\":\"tedarikçi risk listesini güncelle\",\"priority\":\"MEDIUM\"}}"
++        );
++
++        ActionIntentService service = new ActionIntentService(repository, aiChatService, objectMapper);
+ 
+         Optional<ChatAction> proposed = service.detectAndPropose(
+                 UUID.randomUUID(),

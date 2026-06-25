@@ -1,12 +1,12 @@
-# BRIEFING — 2026-06-16T03:10:30+03:00
+# BRIEFING — 2026-06-20T17:31:18+03:00
 
 ## Mission
-Analyze, design, and implement features in Flow Visualizer including data sources, loop detection, and bottleneck/error visualization.
+Configure host directory volume persistence for PostgreSQL and automate backup/restore script utilities to prevent test data loss in the "Akıllı Organizasyon" (intorg) local development environment.
 
 ## 🔒 My Identity
 - Archetype: sentinel
 - Working directory: /Users/armaganercan/antigravity/intelligent-organization/.agents/sentinel
-- Orchestrator: b3dea763-4903-4850-9334-c7b2794774ef
+- Orchestrator: bbfbf5f3-dbd6-436f-a6b4-3f135c0c0fe6
 - Victory Auditor: TBD
 
 ## 🔒 Key Constraints
@@ -15,12 +15,12 @@ Analyze, design, and implement features in Flow Visualizer including data source
 - [durum] [eylem] [neden]. [sonraki adım]. (Caveman mode level: full)
 
 ## User Context
-- **Last user request**: Flow Visualizer enhancements (data sources, loop detection, bottlenecks/errors)
+- **Last user request**: Configure host directory volume persistence for PostgreSQL and automate backup/restore script utilities.
 - **Pending clarifications**: none
 - **Delivered results**: none
 
 ## Project Status
-- **Phase**: in progress
+- **Phase**: not started
 
 ## Victory Audit Status
 - **Triggered**: no

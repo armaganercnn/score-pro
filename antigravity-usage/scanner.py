@@ -79,6 +79,14 @@ def project_name_from_cwd(cwd):
     if not parts or "brain" in parts or ".system_generated" in parts or (".gemini" in parts and "scratch" not in parts):
         return "Genel Sohbet"
 
+    # Drop .agents and any subsequent parts (subagents like sentinel, orchestrator, etc.)
+    if ".agents" in parts:
+        idx = parts.index(".agents")
+        parts = parts[:idx]
+        if not parts:
+            return "Genel Sohbet"
+        cwd_clean = "/" + "/".join(parts)
+
     # 1. Check sub-projects under scratch
     if "scratch" in parts:
         idx = parts.index("scratch")
@@ -119,13 +127,16 @@ def migrate_existing_sessions(conn):
         sid = row[0]
         pname = row[1]
         
-        if pname in ("antigravity-scratch", "unknown") or "/" in pname or pname.startswith("brain"):
-            turn_cursor = conn.execute("SELECT cwd FROM turns WHERE session_id = ? AND cwd IS NOT NULL AND cwd != '' LIMIT 1", (sid,))
-            turn_row = turn_cursor.fetchone()
-            new_pname = project_name_from_cwd(turn_row[0]) if turn_row else "Genel Sohbet"
+        turn_cursor = conn.execute("SELECT cwd FROM turns WHERE session_id = ? AND cwd IS NOT NULL AND cwd != '' ORDER BY timestamp DESC", (sid,))
+        new_pname = "Genel Sohbet"
+        for turn_row in turn_cursor.fetchall():
+            det = project_name_from_cwd(turn_row[0])
+            if det != "Genel Sohbet":
+                new_pname = det
+                break
             
-            if new_pname != pname:
-                sessions_to_update.append((new_pname, sid))
+        if new_pname != pname:
+            sessions_to_update.append((new_pname, sid))
                 
     if sessions_to_update:
         conn.executemany("UPDATE sessions SET project_name = ? WHERE session_id = ?", sessions_to_update)

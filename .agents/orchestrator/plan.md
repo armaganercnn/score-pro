@@ -1,34 +1,34 @@
-# Plan: Flow Visualizer Enhancements
+# Plan: Chatbot Integration & Orchestration Verification
 
-This plan describes the implementation of the Flow Visualizer enhancements requested in ORIGINAL_REQUEST.md.
+This plan outlines the steps required to verify the end-to-end agent orchestration (Orchestrator, Finance, Operation, and Reporting specialists with Ayşe Yılmaz's persona settings), populate PostgreSQL test data, execute a complex chatbot task, and trace execution via agent task traces.
 
 ## Milestones
 
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| 1 | R1: PO Vision & Codebase Analysis | Run codebase analysis. Prepare PO Vision Alignment and Gap Analysis report. Update `.wiki/moduller/modul_aidebug_flow_visualizer_analizi.md` and root `PROJECT.md`. | None | PLANNED |
-| 2 | R2 & R4: Frontend Components Enhancements | Implement Data Source visualization (RAG, Tools, Screens badges) in `AgentNode.vue` and details in `FlowDetailDrawer.vue`. Implement latency/error visual badges and root-cause analysis details. | M1 | PLANNED |
-| 3 | R3: Backend Loop Detection & Integration | Implement backend loop detection in `OrchestrationService` & DTOs. Integrate loop warnings/edges highlighting into the frontend Vue Flow. | M1 | PLANNED |
-| 4 | E2E Testing & Verification | Write tests (Challenger), verify implementation correctness, and perform Forensic Audit check. | M2, M3 | PLANNED |
+| 1 | Codebase & Database Exploration | Map database schema, seed data structure, auth flow, chatbot APIs, and task tracing tables. | None | PLANNED |
+| 2 | Test Data Preparation | Write SQL scripts to insert required organizations, projects, knowledge entries, and update Ayşe Yılmaz's persona in PostgreSQL. Apply changes to the database. | M1 | PLANNED |
+| 3 | Verification Script & Execution | Write `verify_orchestration.py` to login, start conversation, poll until COMPLETED, and output/assert the synthesis format. Run verification. | M2 | PLANNED |
+| 4 | Trace & Policy Verification | Verify DB entries in `agent_task_traces`, log visualizer compliance, policy evaluation rules, and execute Forensic Audit. | M3 | PLANNED |
 
 ## Detailed Steps
 
-### Milestone 1: PO Vision & Codebase Analysis
-- **Goal**: Understand current frontend/backend Flow Visualizer implementation, do a gap analysis, draft a PO-level vision enhancement (token cost, live messaging flows, bottleneck analysis), update the wiki doc, and update `PROJECT.md`.
-- **Subagent**: `teamwork_preview_explorer` (explorer_flow_visualizer)
-- **Handoff criteria**: A detailed handoff analysis report, updated `PROJECT.md`, updated wiki index and flow visualizer analysis doc.
+### Milestone 1: Codebase & Database Exploration
+- **Goal**: Understand the database table structures, existing user entries, and endpoints.
+- **Subagent**: `teamwork_preview_explorer` (explorer_r1_1)
+- **Handoff criteria**: Verification of table structure, chatbot endpoints, and script requirements.
 
-### Milestone 2: Frontend Components (R2 & R4)
-- **Goal**: Add RAG (📚), Tools (🛠️), and Screens (📱) badges in `AgentNode.vue` with counts. Add detailed sections in `FlowDetailDrawer.vue`. Display latency/error status visually (yellow/red borders, pulse effects).
-- **Subagent**: `teamwork_preview_worker` (worker_frontend)
-- **Handoff criteria**: Compiling frontend, passing linters/typechecks, visually validated badges and performance tags.
+### Milestone 2: Test Data Preparation
+- **Goal**: Insert the test data described in R1 into PostgreSQL.
+- **Subagent**: `teamwork_preview_worker` (worker_r1_1)
+- **Handoff criteria**: DB seed script created and executed, verified by listing database records.
 
-### Milestone 3: Backend Loop Detection (R3)
-- **Goal**: Add loop detection logic (detecting repeating calls of the same agent/role in run/chat history, e.g. >= 3 occurrences in parent-child or context paths). Add `isLooping` and `warnings` fields to `RunDetailDto` / `AgentTaskDto`. Integrate in frontend store and highlight loop edges in red/dashed lines.
-- **Subagent**: `teamwork_preview_worker` (worker_backend)
-- **Handoff criteria**: Compiling backend, passing tests, integrated loop detection.
+### Milestone 3: Verification Script & Execution
+- **Goal**: Write and run `verify_orchestration.py` to trigger the flow and confirm correct synthesis outputs.
+- **Subagent**: `teamwork_preview_worker` (worker_r1_2)
+- **Handoff criteria**: `verify_orchestration.py` created and successfully run with matching outputs.
 
-### Milestone 4: Verification (Challenger & Auditor)
-- **Goal**: Run tests, check for compliance, run E2E scenarios, and pass Forensic Auditor checks with a CLEAN verdict.
-- **Subagent**: `teamwork_preview_challenger` and `teamwork_preview_auditor`
-- **Handoff criteria**: Verified test execution, green status, and CLEAN auditor report.
+### Milestone 4: Trace & Policy Verification
+- **Goal**: Audit the task traces (`agent_task_traces`) and policy evaluations, then run the Forensic Auditor to verify execution.
+- **Subagent**: `teamwork_preview_auditor` (auditor_r1_1)
+- **Handoff criteria**: Clean Forensic Audit run, task trace entries checked.

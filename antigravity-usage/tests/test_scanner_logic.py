@@ -22,6 +22,9 @@ def test_project_name_from_cwd_scratch_projects():
     path2 = "/Users/armaganercan/.gemini/antigravity/scratch/diagram-studio"
     assert project_name_from_cwd(path2) == "diagram-studio"
 
+    path3 = "/Users/armaganercan/antigravity/wiki-optimizer/.agents/sentinel"
+    assert project_name_from_cwd(path3) == "wiki-optimizer"
+
 def test_project_name_from_cwd_fallbacks():
     path1 = "/Users/armaganercan/.gemini/antigravity/brain/5a79a77f-3401-4ca9"
     assert project_name_from_cwd(path1) == "Genel Sohbet"
