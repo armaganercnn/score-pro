@@ -209,6 +209,8 @@ def get_dashboard_data():
             "branch": r["git_branch"],
             "last_active": formatted_last_active,
             "last_active_raw": r["local_last_timestamp"] if r["local_last_timestamp"] else "",
+            "first_timestamp": r["first_timestamp"],
+            "last_timestamp": r["last_timestamp"],
             "duration_min": duration_min,
             "model": model_name,
             "turns": r["turn_count"],
@@ -901,8 +903,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
                         <th>Süre<span class="info-icon">i<span class="tooltip-text">Sohbetin ilk mesajı ile son mesajı arasında geçen toplam süre.</span></span></th>
                         <th>Model<span class="info-icon">i<span class="tooltip-text">Sohbet içerisinde kullanılan LLM modeli.</span></span></th>
                         <th>Dönüş<span class="info-icon">i<span class="tooltip-text">Sohbet içerisindeki toplam asistan yanıtı sayısı.</span></span></th>
-                        <th>Giriş<span class="info-icon">i<span class="tooltip-text">Asistana gönderilen toplam girdi token sayısı (önbellek yazma hariç).</span></span></th>
-                        <th>Önbellek Okuma / Hit<span class="info-icon">i<span class="tooltip-text">İstek önbelleğinden (context caching) okunan ve indirimli faturalandırılan token sayısı.</span></span></th>
+                        <th>Yeni Giriş<span class="info-icon">i<span class="tooltip-text">Önbellek (cache) dışından sıfırdan gönderilen yeni girdi token'larının toplamı.</span></span></th>
+                        <th>Önbellek Okuma / Hit<span class="info-icon">i<span class="tooltip-text">İstek önbelleğinden (context caching) okunan ve indirimli faturalandırılan token sayısı. Geçmiş bağlam her dönüşte tekrar okunduğu için kümülatif toplamı yeni girdiden yüksek çıkabilir.</span></span></th>
                         <th>Önbellek Yazma<span class="info-icon">i<span class="tooltip-text">Önbelleğe ilk kez yazılan ve sonraki dönüşlerde okunabilecek bağlam token sayısı.</span></span></th>
                         <th>Çıkış<span class="info-icon">i<span class="tooltip-text">Asistanın ürettiği toplam çıktı token sayısı.</span></span></th>
                         <th>Tahmini Maliyet<span class="info-icon">i<span class="tooltip-text">Sohbetin girdileri ve çıktıları doğrultusunda tahmini toplam maliyeti.</span></span></th>
@@ -1354,6 +1356,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 return true;
             });
 
+            // Calculate dynamic duration covering parent and all visible children
+            let firstTs = s.first_timestamp ? new Date(s.first_timestamp.replace('Z', '+00:00')) : null;
+            let lastTs = s.last_timestamp ? new Date(s.last_timestamp.replace('Z', '+00:00')) : null;
+
             filteredChildren.forEach(c => {
                 aggregatedTurns += c.turns;
                 aggregatedInput += c.input;
@@ -1361,7 +1367,23 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 aggregatedCacheRead += c.cache_read;
                 aggregatedCacheCreation += c.cache_creation;
                 aggregatedCost += c.cost;
+
+                if (c.first_timestamp) {
+                    const cFirst = new Date(c.first_timestamp.replace('Z', '+00:00'));
+                    if (!firstTs || cFirst < firstTs) firstTs = cFirst;
+                }
+                if (c.last_timestamp) {
+                    const cLast = new Date(c.last_timestamp.replace('Z', '+00:00'));
+                    if (!lastTs || cLast > lastTs) lastTs = cLast;
+                }
             });
+
+            let displayDuration = 0;
+            if (firstTs && lastTs) {
+                displayDuration = Math.round(((lastTs - firstTs) / (1000 * 60)) * 10) / 10;
+            } else {
+                displayDuration = s.duration_min;
+            }
 
             displaySessions.push({
                 ...s,
@@ -1371,7 +1393,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 displayOutput: aggregatedOutput,
                 displayCacheRead: aggregatedCacheRead,
                 displayCacheCreation: aggregatedCacheCreation,
-                displayCost: aggregatedCost
+                displayCost: aggregatedCost,
+                displayDuration: displayDuration
             });
         });
 
@@ -1411,8 +1434,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
             // 3. Average time per turn
             let avgTurnTimeHtml = '';
-            if (s.displayTurns > 0 && s.duration_min > 0) {
-                const avgSec = (s.duration_min * 60) / s.displayTurns;
+            if (s.displayTurns > 0 && s.displayDuration > 0) {
+                const avgSec = (s.displayDuration * 60) / s.displayTurns;
                 const avgText = avgSec >= 60 
                     ? `${(avgSec / 60).toFixed(1)} dk/dönüş` 
                     : `${Math.round(avgSec)} sn/dönüş`;
@@ -1420,9 +1443,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
             }
 
             // 4. Cache / input token information
-            let inputTitle = `Toplam Girdi: ${s.displayInput.toLocaleString()} token`;
+            let inputTitle = `Toplam Yeni Girdi: ${s.displayInput.toLocaleString()} token`;
             if (s.displayCacheRead > 0) {
-                const hitPercent = ((s.displayCacheRead / (s.displayInput || 1)) * 100).toFixed(0);
+                const hitPercent = ((s.displayCacheRead / ((s.displayInput + s.displayCacheRead) || 1)) * 100).toFixed(0);
                 inputTitle += `\n- Önbellek Hit: ${s.displayCacheRead.toLocaleString()} token (%${hitPercent})`;
             }
             if (s.displayCacheCreation > 0) {
@@ -1444,7 +1467,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
                 </td>
                 <td style="font-weight: 500;">${s.project}</td>
                 <td class="mono">${s.last_active}${relativeHtml}</td>
-                <td>${s.duration_min} dk${avgTurnTimeHtml}</td>
+                <td>${s.displayDuration} dk${avgTurnTimeHtml}</td>
                 <td><span class="model-badge ${getModelBadgeClass(s.model)}">${cleanModelName(s.model)}</span></td>
                 <td>${s.displayTurns}</td>
                 <td class="mono" title="${inputTitle}">${formatNumber(s.displayInput)}</td>
@@ -1501,9 +1524,9 @@ HTML_PAGE = r"""<!DOCTYPE html>
                     }
 
                     // Child Cache / input token information
-                    let childInputTitle = `Toplam Girdi: ${c.input.toLocaleString()} token`;
+                    let childInputTitle = `Toplam Yeni Girdi: ${c.input.toLocaleString()} token`;
                     if (c.cache_read > 0) {
-                        const hitPercent = ((c.cache_read / (c.input || 1)) * 100).toFixed(0);
+                        const hitPercent = ((c.cache_read / ((c.input + c.cache_read) || 1)) * 100).toFixed(0);
                         childInputTitle += `\n- Önbellek Hit: ${c.cache_read.toLocaleString()} token (%${hitPercent})`;
                     }
                     if (c.cache_creation > 0) {

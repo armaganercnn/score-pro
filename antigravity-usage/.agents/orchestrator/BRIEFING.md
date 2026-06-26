@@ -22,9 +22,9 @@ Son Oturumlar tablosunu yatayda tam genişliğe (full-width) yaymak ve girdi, ç
   2. Explore Sessions Table layout and data fields [done]
   3. Implement table full-width CSS and separate columns (Input, Cache Read, Cache Write, Output) [done]
   4. Implement column header tooltip and info icons [done]
-  5. Verify correctness in parent/child rows and validate using E2E tests [in-progress]
-- **Current phase**: 3
-- **Current focus**: Running verification (Reviewers, Challengers, Forensic Auditor) for Sessions Table changes.
+  5. Verify correctness in parent/child rows and validate using E2E tests [done]
+- **Current phase**: 4
+- **Current focus**: Project completion and reporting to user/parent.
 
 ## 🔒 Key Constraints
 - Never write or modify source code files directly.
@@ -34,32 +34,32 @@ Son Oturumlar tablosunu yatayda tam genişliğe (full-width) yaymak ve girdi, ç
 
 ## Current Parent
 - Conversation ID: 94b7bb46-1418-4785-a56b-d2081cd48d68
-- Updated: 2026-06-25T21:04:21+03:00
+- Updated: 2026-06-25T18:11:40Z
 
 ## Key Decisions Made
 - Use Project pattern with single milestone for follow-up dashboard table changes.
-- Ensure all 11 columns are correctly represented in table layout for parent/child rows.
+- Maintain scope fidelity: document pre-existing bugs found by Challengers instead of implementing unrequested fixes.
 
 ## Team Roster
 | Agent | Type | Work Item | Status | Conv ID |
 |-------|------|-----------|--------|---------|
 | Explorer | teamwork_preview_explorer | Explore Sessions Table layout and data fields | completed | 09fc146c-bb7d-4f63-abaa-da1f840e8c27 |
 | Worker | teamwork_preview_worker | Implement dashboard table updates | completed | 4183ecc6-c543-4095-a0cb-0672cacc949f |
-| Reviewer 1 | teamwork_preview_reviewer | Review CSS, HTML columns and JavaScript rendering | pending | 2a4b0c7f-6831-490f-b080-961fa2457ecd |
-| Reviewer 2 | teamwork_preview_reviewer | Review CSS, HTML columns and JavaScript rendering | pending | 23c7db54-06a7-4887-8720-8b9f46bf3d56 |
-| Challenger 1 | teamwork_preview_challenger | Challenge Sessions Table correctness and robustness | pending | bef5105f-b6e7-40ed-995f-c70bbf65e540 |
-| Challenger 2 | teamwork_preview_challenger | Challenge Sessions Table correctness and robustness | pending | 0b1b6e49-efb3-4bd3-89f5-786ad24266b6 |
-| Forensic Auditor | teamwork_preview_auditor | Run forensic checks on dashboard table update | pending | 309db5c4-338b-4c68-8c2a-fc44c1af0350 |
+| Reviewer 1 | teamwork_preview_reviewer | Review CSS, HTML columns and JavaScript rendering | completed | 2a4b0c7f-6831-490f-b080-961fa2457ecd |
+| Reviewer 2 | teamwork_preview_reviewer | Review CSS, HTML columns and JavaScript rendering | completed | 23c7db54-06a7-4887-8720-8b9f46bf3d56 |
+| Challenger 1 | teamwork_preview_challenger | Challenge Sessions Table correctness and robustness | completed | bef5105f-b6e7-40ed-995f-c70bbf65e540 |
+| Challenger 2 | teamwork_preview_challenger | Challenge Sessions Table correctness and robustness | completed | 0b1b6e49-efb3-4bd3-89f5-786ad24266b6 |
+| Forensic Auditor | teamwork_preview_auditor | Run forensic checks on dashboard table update | completed | 309db5c4-338b-4c68-8c2a-fc44c1af0350 |
 
 ## Succession Status
 - Succession required: no
 - Spawn count: 7 / 16
-- Pending subagents: 2a4b0c7f-6831-490f-b080-961fa2457ecd, 23c7db54-06a7-4887-8720-8b9f46bf3d56, bef5105f-b6e7-40ed-995f-c70bbf65e540, 0b1b6e49-efb3-4bd3-89f5-786ad24266b6, 309db5c4-338b-4c68-8c2a-fc44c1af0350
+- Pending subagents: none
 - Predecessor: none
 - Successor: not yet spawned
 
 ## Active Timers
-- Heartbeat cron: 94b7bb46-1418-4785-a56b-d2081cd48d68/task-67
+- Heartbeat cron: none
 - Safety timer: none
 - On succession: kill all timers before spawning successor
 - On context truncation: run `manage_task(Action="list")` — re-create if missing
